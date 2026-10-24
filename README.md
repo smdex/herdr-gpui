@@ -270,6 +270,32 @@ pins Rust 1.96.1 and GPUI 0.3.6 (the `gpui-pre` snapshot crate); the Rust versio
 is declared in `rust-toolchain.toml` and mirrored in `mise.toml`, so `mise install`
 also provisions it.
 
+The root `[patch.crates-io]` overrides **both** `gpui-pre` and `gpui-pre-linux`
+with the reviewed [platform backport](https://github.com/smdex/herdr-gpui-platform-backport/tree/d4c5aa52664dfb5e75789101e50a67d0aa187bc8),
+pinned to commit `d4c5aa52664dfb5e75789101e50a67d0aa187bc8`. The `=0.3.6`
+requirements stay unchanged; all other GPUI snapshot packages remain registry
+0.3.6, and the existing local `embed-resource` patch remains in effect.
+This is not an official Zed release: it preserves the published crates' Zed
+snapshot `bcf6582ce3500df93a8a39366640173e6786cea6`, attribution, and licenses.
+See the pinned [backport notes](https://github.com/smdex/herdr-gpui-platform-backport/blob/d4c5aa52664dfb5e75789101e50a67d0aa187bc8/BACKPORT.md)
+for archive checksums and the decoration, callback, and blur contracts.
+
+`Cargo.lock` records the Git source; `flake.nix` records its fetched checkout
+hash, `sha256-s6zLgvhRJHDGIuoxbB4giMQ1a8g9mxi4p0SqTgjKakM=`, under
+`cargoLock.outputHashes."gpui-pre-0.3.6"`. Nix shares that checkout hash with
+`gpui-pre-linux`; a second hash entry is unnecessary. To update the backport,
+change both revisions together, narrowly update those two lockfile packages,
+then re-fetch and verify the Nix hash. Check `cargo metadata --locked` and
+`cargo tree --locked -i gpui-pre` for one core identity before building.
+
+Backport tests do not prove native compositor/GPU behavior, Vulkan WSI ordering,
+scale/tiling, or visible blur. Blur support describes an advertised request
+path, not confirmed pixels; unreported platform queries return `None`.
+The published core archive lacks font assets for its full unit suite, and the
+backport's original all-features check lacked `x11.pc`. Native Linux visual QA
+and macOS/Windows validation of this pinned backport remain separate requirements;
+existing platform CI descriptions below are not evidence for this new revision.
+
 ```sh
 git clone https://github.com/penso/herdr-gpui.git
 cd herdr-gpui

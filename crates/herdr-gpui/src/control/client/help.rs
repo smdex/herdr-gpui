@@ -49,7 +49,7 @@ Exit status: 0 done, 1 refused, 2 invalid arguments, 3 Herdr UI not running,
 fn family(name: &str) -> &'static str {
     match name {
         "status" => {
-            "herdr-gpui status\n    Whether Herdr UI runs, its version, protocol, windows, and hosts.\n    Exits 3 when it does not run."
+            "herdr-gpui status\n    Whether Herdr UI runs, its version, protocol, windows, hosts, and window appearance limitations.\n    Exits 3 when it does not run."
         }
         "skill" => "herdr-gpui skill\n    Print the agent skill describing these commands.",
         "app" => {

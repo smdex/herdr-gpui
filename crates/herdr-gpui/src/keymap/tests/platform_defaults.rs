@@ -18,8 +18,14 @@ fn platform_defaults_are_complete_unique_and_leave_edit_keys_available() {
     let mut seen = HashMap::new();
     for info in COMMANDS {
         // A platform can append aliases for normalized backend keystrokes.
+        // The in-window menu toggle has no macOS counterpart.
         assert!(
-            info.default_shortcuts().len() >= info.base_shortcuts().len(),
+            info.default_shortcuts().len()
+                >= if info.command == Command::ToggleMenuBar && !cfg!(target_os = "macos") {
+                    1
+                } else {
+                    info.base_shortcuts().len()
+                },
             "{}",
             info.name
         );

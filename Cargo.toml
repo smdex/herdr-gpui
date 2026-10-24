@@ -236,3 +236,6 @@ debug = "line-tables-only"
 # no-op stands in for it. See crates/embed-resource.
 [patch.crates-io]
 embed-resource = { path = "crates/embed-resource" }
+# Reviewed platform backport; patch both packages to keep one GPUI core identity.
+gpui-pre       = { git = "https://github.com/smdex/herdr-gpui-platform-backport", rev = "d4c5aa52664dfb5e75789101e50a67d0aa187bc8" }
+gpui-pre-linux = { git = "https://github.com/smdex/herdr-gpui-platform-backport", rev = "d4c5aa52664dfb5e75789101e50a67d0aa187bc8" }

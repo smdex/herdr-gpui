@@ -33,6 +33,9 @@ impl HerdrWindow {
             || self.live.error.is_some())
         .then(|| self.live.status_text(self.local_error.as_deref()));
         let items = self.config.status_bar;
+        let theme_button = items.theme.with_visibility(items.show_theme);
+        let shortcuts_button = items.shortcuts.with_visibility(items.show_shortcuts);
+        let report_issue_button = items.report_issue.with_visibility(items.show_report_issue);
         let height = px(self.status_bar_height());
         let usage = self.render_usage(cx);
         let has_usage = usage.is_some();
@@ -41,6 +44,18 @@ impl HerdrWindow {
             .debug_selector(|| "connection-status".into())
             .role(Role::Status)
             .aria_label(fl!("status-bar-label"))
+            .on_mouse_down(
+                MouseButton::Right,
+                cx.listener(|this, event: &MouseDownEvent, window, cx| {
+                    cx.stop_propagation();
+                    window.prevent_default();
+                    if this.open_menu(window, cx) {
+                        this.menu.page = Some(crate::menu::Page::StatusBar);
+                        this.menu.anchor = event.position;
+                        this.menu.opening_right_click = true;
+                    }
+                }),
+            )
             // Windows pages draw above the bar's tooltips, so those under
             // where a tooltip shows hide while the pointer is over the bar.
             .on_hover(cx.listener(|this, hovered: &bool, _, cx| {
@@ -119,39 +134,39 @@ impl HerdrWindow {
             .children(self.render_gpu_load())
             .children(self.render_network_quality(cx))
             .children(self.caffeine_button(items.keep_awake, cx))
-            .when(items.theme.shown(), |bar| {
+            .when(theme_button.shown(), |bar| {
                 bar.child(
                     self.status_button(
                         "status-theme",
                         glyph("icons/theme.svg", self.theme.foreground),
                         fl!("status-bar-theme"),
-                        items.theme,
+                        theme_button,
                     )
                     .on_click(cx.listener(|this, _, window, cx| {
                         this.open_theme_picker(window, cx);
                     })),
                 )
             })
-            .when(items.shortcuts.shown(), |bar| {
+            .when(shortcuts_button.shown(), |bar| {
                 bar.child(
                     self.status_button(
                         "status-keybinds",
                         glyph("icons/keyboard.svg", self.theme.foreground),
                         fl!("status-bar-shortcuts"),
-                        items.shortcuts,
+                        shortcuts_button,
                     )
                     .on_click(cx.listener(|this, _, window, cx| {
                         this.open_keybinds(window, cx);
                     })),
                 )
             })
-            .when(items.report_issue.shown(), |bar| {
+            .when(report_issue_button.shown(), |bar| {
                 bar.child(
                     self.status_button(
                         "report-issue",
                         self.issue_ring(),
                         fl!("status-bar-report-issue"),
-                        items.report_issue,
+                        report_issue_button,
                     )
                     .on_click(cx.listener(|this, _, _, cx| this.open_report_issue(cx))),
                 )
@@ -307,7 +322,9 @@ impl HerdrWindow {
     }
 
     /// Shows a keep-awake failure in this window, if it is still open.
-    fn caffeine_report(cx: &Context<Self>) -> impl FnOnce(crate::Error, &mut App) + 'static {
+    pub(crate) fn caffeine_report(
+        cx: &Context<Self>,
+    ) -> impl FnOnce(crate::Error, &mut App) + 'static {
         let view = cx.entity().downgrade();
         move |error, cx| {
             let flash = super::Flash::warning(error.to_string());
@@ -315,9 +332,8 @@ impl HerdrWindow {
         }
     }
 
-    /// Hidden by `keep_awake = false` only while off: the cup is the one
-    /// way to let the display sleep again. A click holds until clicked again;
-    /// a right-click holds until every agent finishes.
+    /// A hide releases asynchronously. Keep the pending/active cup accessible
+    /// until the worker confirms release; showing it again never starts a hold.
     fn caffeine_button(&self, shown: bool, cx: &mut Context<Self>) -> Option<Stateful<Div>> {
         use crate::caffeine::{Cup, Mode};
         let cup = crate::caffeine::cup(cx);
@@ -397,15 +413,7 @@ impl HerdrWindow {
             .on_click(cx.listener(|_, _, _, cx| {
                 let report = Self::caffeine_report(cx);
                 crate::caffeine::toggle(cx, report);
-            }))
-            .on_mouse_down(
-                MouseButton::Right,
-                cx.listener(|_, _, _, cx| {
-                    cx.stop_propagation();
-                    let report = Self::caffeine_report(cx);
-                    crate::caffeine::toggle_until_agents_finish(cx, report);
-                }),
-            );
+            }));
         Some(button)
     }
 

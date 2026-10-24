@@ -275,6 +275,22 @@ Focus-on-hover between split terminal panes is on by default. Disable it with
 `herdr-gpui config set focus_follows_mouse false`.
 The change applies live; `config get focus_follows_mouse` reads it back.
 
+Status-bar items use the same settings as the bar's right-click menu and Settings:
+`usage.show`, `show_system_load`, `show_network_quality`, `show_listening_ports`,
+`status_bar.keep_awake`, `status_bar.show_theme`, `status_bar.show_shortcuts`, and
+`status_bar.show_report_issue`. For example:
+
+```sh
+herdr-gpui config set status_bar.show_theme false
+herdr-gpui config set status_bar.show_theme true  # restores the saved icon/label style
+herdr-gpui config unset status_bar.show_theme    # follows legacy status_bar.theme
+```
+
+The three `show_*` button keys override legacy `"hidden"` values. Showing a legacy
+hidden button with no saved style uses a label. Hiding Keep Awake releases its
+active/pending hold; showing it does not activate one.
+
+
 ### Remote control
 
 | Command | What it does |
@@ -448,11 +464,10 @@ download first is left out.
 Files dropped on a remote chat are copied to the host first, into private
 temporary files under its `${TMPDIR:-/tmp}`, and the copies are attached.
 
-### Existing agent rendering
-
-Set `chat.render_existing = true` along with `features.acp_chats = true` to
-render existing Linux Codex/Claude conversations automatically. The original
-terminal input remains interactive in the same pane. `chat status --json`
-reports `input_mode` (`chat`, `terminal`, or `read_only`) and `session_id`;
-`blocked` status means the running agent needs input. `chat show/hide/toggle`
-still switches the pane presentation, without starting or stopping its agent.
++
++Set `chat.render_existing = true` along with `features.acp_chats = true` to
++render existing Linux Codex/Claude conversations automatically. The original
++terminal input remains interactive in the same pane. `chat status --json`
++reports `input_mode` (`chat`, `terminal`, or `read_only`) and `session_id`;
++`blocked` status means the running agent needs input. `chat show/hide/toggle`
++still switches the pane presentation, without starting or stopping its agent.

@@ -89,6 +89,7 @@ pub(crate) struct MenuState {
     /// The device the revoke question is about.
     pub(crate) remote_revoke: Option<crate::remote::Revoke>,
     pub(super) devices_scroll: ScrollHandle,
+    pub(super) menu_scroll: ScrollHandle,
     /// The sessions list scrolls its own way; the two popups never share one.
     pub(crate) sessions_scroll: ScrollHandle,
     pub(crate) usage_scroll: ScrollHandle,
@@ -351,6 +352,7 @@ impl MenuState {
             remote_pairing: None,
             remote_revoke: None,
             devices_scroll: ScrollHandle::new(),
+            menu_scroll: ScrollHandle::new(),
             sessions_scroll: ScrollHandle::new(),
             usage_scroll: ScrollHandle::new(),
             endpoint_target: (0, 0),
@@ -434,6 +436,7 @@ impl MenuState {
         self.remote_pairing = None;
         self.remote_revoke = None;
         self.devices_scroll.set_offset(Point::default());
+        self.menu_scroll.set_offset(Point::default());
         self.sessions_scroll.set_offset(Point::default());
         self.usage_scroll.set_offset(Point::default());
         self.opening_right_click = false;

@@ -269,6 +269,7 @@ impl HerdrWindow {
         render(
             self.fill().tint(bar(self.theme.surface)),
             Some(leading),
+            crate::menus::IN_WINDOW && self.config.show_window_controls,
             window,
         )
         .child(
@@ -317,12 +318,31 @@ impl HerdrWindow {
             .pr_profile()
             .and_then(|profile| self.menu.github_avatars.get(&profile.avatar_url));
         let attention = self.github_needs_attention() || self.orchestrator_gitlab_needs_sign_in(cx);
+        let reserve_controls = crate::menus::IN_WINDOW
+            && !self.application_bar_visible()
+            && show_controls(
+                self.config.show_window_controls,
+                window.window_decorations(),
+            );
         div()
             .row()
             .flex_none()
             .items_center()
-            .children(self.render_git_button(cx))
-            .children(self.remote_indicator(cx))
+            .when(reserve_controls, |end| end.flex_shrink(1.).min_w_0())
+            .children(self.render_git_button(cx).map(|git| {
+                if reserve_controls {
+                    git.flex_shrink(1.).min_w_0().overflow_hidden()
+                } else {
+                    git
+                }
+            }))
+            .children(self.remote_indicator(cx).map(|remote| {
+                if reserve_controls {
+                    remote.flex_shrink(1.).min_w_0().overflow_hidden()
+                } else {
+                    remote
+                }
+            }))
             .child(
                 div()
                     .debug_selector(|| "titlebar-account-slot".into())
@@ -417,10 +437,13 @@ impl HerdrWindow {
                     ),
             )
             // The in-window menu bar carries the window controls instead.
-            .when(!crate::menus::IN_WINDOW, |end| {
-                end.children(controls(false, window, &self.theme, |window, _| {
-                    window.remove_window();
-                }))
+            .when(!self.application_bar_visible(), |end| {
+                end.children(controls(
+                    crate::menus::IN_WINDOW && self.config.show_window_controls,
+                    window,
+                    &self.theme,
+                    |window, _| window.remove_window(),
+                ))
             })
     }
 }
@@ -434,6 +457,7 @@ fn bar(surface: u32) -> Hsla {
 pub(super) fn render(
     background: Hsla,
     leading: Option<AnyElement>,
+    controls_enabled: bool,
     window: &Window,
 ) -> Stateful<Div> {
     // AppKit keeps the traffic lights on the left whatever the app's own
@@ -455,7 +479,7 @@ pub(super) fn render(
                 .h_full(),
         )
         .children(leading);
-    movable(bar, window)
+    movable_with_controls(bar, window, controls_enabled)
 }
 
 /// Makes `area` do a title bar's job: pressing it moves the window, and a
@@ -511,7 +535,7 @@ pub(crate) fn header(
 ) -> Option<Stateful<Div>> {
     (cfg!(target_os = "macos") || decorations::client(window)).then(|| {
         let buttons = controls(false, window, theme, close);
-        render(bar(theme.surface), None, window).children(buttons)
+        render(bar(theme.surface), None, false, window).children(buttons)
     })
 }
 
@@ -521,19 +545,31 @@ const ZEN_INSET: f32 = 28.;
 /// What zen mode keeps of the header: a blank band in the terminal's color
 /// that still moves the window, where macOS draws the traffic lights over it
 /// and a client-decorated window has nothing else to move it by. Full
-/// screen, and a server-drawn frame, need none.
-pub(crate) fn zen_inset(ground: Hsla, window: &Window) -> Option<Stateful<Div>> {
-    let needed = cfg!(target_os = "macos") || decorations::client(window);
+/// screen needs none; a server frame needs one only with forced controls.
+pub(crate) fn zen_inset(
+    ground: Hsla,
+    theme: &crate::config::Theme,
+    controls_enabled: bool,
+    window: &Window,
+) -> Option<Stateful<Div>> {
+    let needed =
+        cfg!(target_os = "macos") || show_controls(controls_enabled, window.window_decorations());
     (needed && !window.is_fullscreen()).then(|| {
-        movable(
+        movable_with_controls(
             div()
                 .id("zen-inset")
                 .debug_selector(|| "zen-inset".into())
+                .flex()
+                .items_center()
                 .flex_none()
                 .w_full()
                 .h(px(ZEN_INSET))
-                .bg(ground),
+                .bg(ground)
+                .children(controls(controls_enabled, window, theme, |window, _| {
+                    window.remove_window()
+                })),
             window,
+            controls_enabled,
         )
     })
 }

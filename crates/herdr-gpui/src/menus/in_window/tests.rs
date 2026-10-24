@@ -27,3 +27,9 @@ mod navigation;
 mod resizing;
 #[cfg(any(target_os = "linux", windows))]
 mod shortcut_labels;
+
+#[cfg(any(target_os = "linux", windows))]
+mod visibility;
+
+#[cfg(any(target_os = "linux", windows))]
+mod alt;

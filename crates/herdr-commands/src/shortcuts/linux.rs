@@ -44,6 +44,7 @@ pub(super) fn defaults(command: Command) -> &'static [&'static str] {
         TabNumber(7) => &["ctrl-shift-7"],
         TabNumber(8) => &["ctrl-shift-8"],
         TabNumber(9) => &["ctrl-shift-9"],
+        ToggleMenuBar => &["ctrl-shift-m"],
         ToggleSidebar => &["ctrl-shift-b"],
         ToggleStatusBar => &["ctrl-alt-b"],
         // Windows' own key for moving between a window's regions.

@@ -16,6 +16,7 @@ mod padding;
 mod report_issue;
 mod rtl;
 mod sound_volume;
+mod status_bar_menu;
 
 fn main_windows(cx: &mut gpui::App) -> Vec<gpui::WindowHandle<HerdrWindow>> {
     cx.windows()
@@ -271,3 +272,5 @@ fn host_theme_reaches_each_connection_and_follows_theme_changes(cx: &mut gpui::T
     assert_eq!(theme_updates(&mut replacement_server, 4).len(), 4);
     assert_quiet(&replacement, &mut replacement_server);
 }
+
+mod status_bar_keyboard;

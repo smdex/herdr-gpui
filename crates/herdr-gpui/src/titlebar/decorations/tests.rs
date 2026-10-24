@@ -182,3 +182,5 @@ fn unsupported_controls_are_not_offered(cx: &mut TestAppContext) {
     assert!(cx.debug_bounds("window-maximize").is_none());
     assert!(cx.debug_bounds("window-close").is_some());
 }
+
+mod visibility;

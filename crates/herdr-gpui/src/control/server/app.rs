@@ -60,6 +60,7 @@ impl HerdrWindow {
                 .as_ref()
                 .and_then(|snapshot| snapshot.focused_workspace_id.clone()),
             hosts: self.control_hosts(),
+            appearance_limitations: self.appearance_limitations(window),
         }
     }
 }

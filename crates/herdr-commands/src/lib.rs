@@ -48,6 +48,7 @@ pub enum Command {
     /// Reopens the focused workspace's most recently closed tab.
     ReopenClosedTab,
     TabNumber(u8),
+    ToggleMenuBar,
     ToggleSidebar,
     ToggleStatusBar,
     /// Shows or hides the panel of mod sections on the window's right.
@@ -568,6 +569,11 @@ pub const COMMANDS: &[CommandInfo] = &[
         message: "commands-focus-agent",
     },
     CommandInfo {
+        command: Command::ToggleMenuBar,
+        name: "toggle_menu_bar",
+        label: "Toggle Menu Bar",
+    },
+    CommandInfo {
         command: Command::ToggleSidebar,
         name: "toggle_sidebar",
         message: "commands-toggle-sidebar",
@@ -909,6 +915,7 @@ pub fn request(command: Command, snapshot: &ClientShellSnapshot) -> Option<(Meth
         | Command::FindPrevious
         | Command::CopyMode
         | Command::AnnotateSelection
+        | Command::ToggleMenuBar
         | Command::ToggleSidebar
         | Command::ToggleStatusBar
         | Command::ToggleModPanel

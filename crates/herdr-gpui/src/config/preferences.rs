@@ -31,6 +31,8 @@ pub(crate) enum Preference {
     ShowSidebarSearch(bool),
     ShowRepositoryIcons(bool),
     ShowWindowControls(bool),
+    ShowMenuBar(bool),
+    RequestClientSideDecorations(bool),
     /// `status_icons`: the set agent status is drawn with.
     StatusIcons(StatusIcons),
     /// `tab_layout`: how tab strips draw their tabs.
@@ -173,6 +175,10 @@ impl Config {
                 Preference::ShowDeviceIcons(value) => {
                     (None, "show_device_icons", Some(value.into()))
                 }
+                Preference::RequestClientSideDecorations(value) => {
+                    (None, "request_client_side_decorations", Some(value.into()))
+                }
+                Preference::ShowMenuBar(value) => (None, "show_menu_bar", Some(value.into())),
                 Preference::ShowWindowControls(value) => {
                     (None, "show_window_controls", Some(value.into()))
                 }

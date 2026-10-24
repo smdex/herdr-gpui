@@ -19,6 +19,8 @@ pub(crate) struct State {
     /// The system caption's colors, which follow the theme on Windows.
     caption: crate::caption::Caption,
     picture: Picture,
+    initial_decorations: Option<WindowDecorations>,
+    pub(super) limitations: crate::config_diagnostic::ConfigDiagnostic,
     /// The running decode; replacing it cancels the one before.
     load: Option<Task<()>>,
     /// Set only when it changes: the platform call is not free.
@@ -30,7 +32,64 @@ pub(crate) struct State {
     surface: Option<macos::Surface>,
 }
 
+fn limitations(
+    initial: Option<WindowDecorations>,
+    decoration: Option<DecorationNegotiation>,
+    appearance: WindowBackgroundAppearance,
+    blur: Option<BackgroundBlurSupport>,
+) -> Vec<String> {
+    let mut lines = Vec::new();
+    if initial == Some(WindowDecorations::Client)
+        && matches!(
+            decoration,
+            Some(DecorationNegotiation::Configured {
+                requested: WindowDecorations::Client,
+                mode: WindowDecorations::Server,
+            })
+        )
+    {
+        lines.push(
+            "The compositor kept server-side decorations despite the client-side request.".into(),
+        );
+    }
+    if appearance == WindowBackgroundAppearance::Blurred
+        && blur == Some(BackgroundBlurSupport::Unsupported)
+    {
+        lines.push("The compositor advertises no usable blur protocol; translucency remains available without blur.".into());
+    }
+    lines
+}
+
+impl State {
+    fn sync_limitations(&mut self, lines: &[String]) {
+        self.limitations
+            .sync((!lines.is_empty()).then(|| lines.join("\n")).as_deref());
+    }
+
+    pub(super) fn new(initial_decorations: Option<WindowDecorations>) -> Self {
+        Self {
+            initial_decorations,
+            ..Self::default()
+        }
+    }
+}
+
 impl HerdrWindow {
+    /// Display-boundary text, independent of whether its card was dismissed.
+    pub(crate) fn appearance_limitations(&self, window: &Window) -> Vec<String> {
+        limitations(
+            self.backdrop.initial_decorations,
+            window.decoration_negotiation(),
+            backdrop::appearance(&self.config.backdrop, self.backdrop.picture.covers()),
+            window.background_blur_support(),
+        )
+    }
+
+    pub(super) fn sync_appearance_limitations(&mut self, window: &Window) {
+        let lines = self.appearance_limitations(window);
+        self.backdrop.sync_limitations(&lines);
+    }
+
     pub(crate) fn fill(&self) -> Fill {
         Fill::new(&self.theme, &self.config.backdrop)
     }
@@ -88,6 +147,7 @@ impl HerdrWindow {
             window.set_background_appearance(appearance);
             state.appearance = appearance;
         }
+        self.sync_appearance_limitations(window);
     }
 
     /// Paints what lies behind everything on `root`. An opaque window takes
@@ -160,3 +220,7 @@ impl HerdrWindow {
         |_| None
     }
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests;

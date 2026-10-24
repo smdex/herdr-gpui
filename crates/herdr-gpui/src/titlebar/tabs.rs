@@ -51,8 +51,16 @@ impl HerdrWindow {
     /// Right to left, the window keeps the header: its controls mirror, but
     /// tabs stay left to right with the panes under them, and one row cannot
     /// read both ways.
-    pub(crate) fn tabs_in_titlebar(&self, first: GroupId, cx: &App) -> bool {
-        self.tab_bar_position() == TabBarPosition::Top
+    pub(crate) fn tabs_in_titlebar(&self, first: GroupId, window: &Window, cx: &App) -> bool {
+        // ponytail: keep hidden-menu controls in a header; measure strip occupants before merging.
+        let needs_header = crate::menus::IN_WINDOW
+            && !self.application_bar_visible()
+            && super::show_controls(
+                self.config.show_window_controls,
+                window.window_decorations(),
+            );
+        !needs_header
+            && self.tab_bar_position() == TabBarPosition::Top
             && !self.strip_hidden(first, cx)
             && !crate::direction::is_rtl()
     }

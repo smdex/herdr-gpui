@@ -17,6 +17,31 @@ use std::sync::Arc;
 use std::time::Duration;
 
 impl HerdrWindow {
+    pub(crate) fn window_activation_changed(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.active = window.is_window_active();
+        #[cfg(any(windows, all(test, target_os = "linux")))]
+        self.menu.application_bar.cancel_alt();
+        if self.active {
+            self.publish_server_keymap(cx);
+        } else {
+            self.shift_taps.cancel();
+            self.disarm_prefix();
+            self.cancel_terminal_mouse(cx);
+            // A drag cut short is dropped; a selection kept for an
+            // explicit copy outlives a trip to another window.
+            if self.selection.as_ref().is_some_and(Selection::dragging) {
+                self.selection = None;
+            }
+            self.pressed_terminal_link = None;
+        }
+        self.report_focus();
+        cx.notify();
+    }
+
     pub(crate) fn new(
         target: ConnectTarget,
         window: &mut Window,
@@ -98,25 +123,13 @@ impl HerdrWindow {
         let worktree_notes = Self::observe_worktree_notes(window, cx);
         let notification_mutes = Self::observe_notification_mutes(cx);
         let prefix_interceptor = Self::intercept_prefix(window, cx);
-        let activation = cx.observe_window_activation(window, |this, window, cx| {
-            this.active = window.is_window_active();
-            if this.active {
-                this.publish_server_keymap(cx);
-            } else {
-                this.shift_taps.cancel();
-                this.disarm_prefix();
-                this.cancel_terminal_mouse(cx);
-                // A drag cut short is dropped; a selection kept for an
-                // explicit copy outlives a trip to another window.
-                if this.selection.as_ref().is_some_and(Selection::dragging) {
-                    this.selection = None;
-                }
-                this.pressed_terminal_link = None;
-            }
-            this.report_focus();
-            cx.notify();
-        });
-        let appearance_change = cx.observe_window_appearance(window, |this, _, cx| {
+        let activation = cx.observe_window_activation(window, Self::window_activation_changed);
+        let backdrop = super::backdrop::State::new(crate::app::main_window_decorations(
+            config.request_client_side_decorations,
+            cx.compositor_name(),
+        ));
+        let appearance_change = cx.observe_window_appearance(window, |this, window, cx| {
+            this.sync_appearance_limitations(window);
             this.apply_shared_theme(cx);
             this.apply_system_theme(cx);
             cx.notify();
@@ -146,7 +159,7 @@ impl HerdrWindow {
             arrival: None,
             automations: Default::default(),
             avatars: None,
-            backdrop: Default::default(),
+            backdrop,
             bell: crate::bell::Bell::default(),
             bounds: Bounds::default(),
             browser,

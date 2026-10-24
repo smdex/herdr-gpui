@@ -40,6 +40,8 @@ impl HerdrWindow {
                 return;
             }
             let _ = view.update(cx, |this, cx| {
+                #[cfg(windows)]
+                this.menu.application_bar.cancel_alt();
                 if !matches!(
                     event.keystroke.key.as_str(),
                     "shift" | "shiftleft" | "shiftright"

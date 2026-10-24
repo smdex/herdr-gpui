@@ -564,6 +564,16 @@ impl HerdrWindow {
                 );
                 return;
             }
+            Command::ToggleMenuBar => {
+                if crate::menus::IN_WINDOW {
+                    let shown = !self.config.show_menu_bar;
+                    self.save_preference(
+                        move || Config::save_preference(Preference::ShowMenuBar(shown)),
+                        cx,
+                    );
+                }
+                return;
+            }
             Command::ToggleSidebar => self.toggle_sidebar(),
             Command::FocusNextRegion => return self.cycle_region(true, window, cx),
             Command::FocusPreviousRegion => return self.cycle_region(false, window, cx),
