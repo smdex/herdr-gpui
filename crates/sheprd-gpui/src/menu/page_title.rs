@@ -18,6 +18,7 @@ impl Page {
             | Self::Host
             | Self::Menu
             | Self::Pane
+            | Self::StatusBar
             | Self::Tab
             | Self::Workspace => Role::Menu,
             _ => Role::Dialog,
@@ -98,6 +99,7 @@ impl Page {
             Self::RenamePane => fl!("menu-page-rename-pane"),
             Self::RenameTab => fl!("menu-page-rename-tab"),
             Self::RevokeDevice => fl!("menu-page-revoke-device"),
+            Self::StatusBar => fl!("menu-page-status-bar"),
             Self::Tab => fl!("menu-page-tab"),
             Self::Teleport => fl!("menu-page-teleport"),
             Self::Themes => fl!("menu-page-themes"),

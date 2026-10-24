@@ -51,7 +51,7 @@ Exit status: 0 done, 1 refused, 2 invalid arguments, 3 Sheprd not running,
 fn family(name: &str) -> &'static str {
     match name {
         "status" => {
-            "sheprd status\n    Whether Sheprd runs, its version, protocol, windows, and hosts.\n    Exits 3 when it does not run."
+            "sheprd status\n    Whether Sheprd runs, its version, protocol, windows, hosts, and window appearance limitations.\n    Exits 3 when it does not run."
         }
         "skill" => "sheprd skill\n    Print the agent skill describing these commands.",
         "app" => {
