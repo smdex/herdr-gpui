@@ -1,23 +1,36 @@
 //! Menu bar and bounded, scrollable dropdown presentation.
-// i18n: migrated
 
 use super::*;
-use crate::{fonts::StyledFont, i18n::fl};
+use crate::fonts::StyledFont;
 use gpui::prelude::*;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum BarLayer {
     Base,
-    /// The in-flow bar while hidden: it takes no room and draws nothing.
-    Collapsed,
     Overlay,
 }
 
 impl SheprdWindow {
+    fn application_bar_height(&self, window: &Window) -> f32 {
+        let height = self.config.ui.line_height() + 8.;
+        if crate::titlebar::show_controls(
+            self.config.show_window_controls,
+            window.window_decorations(),
+        ) {
+            height.max(crate::titlebar::HEIGHT)
+        } else {
+            height
+        }
+    }
+
     fn compact_application_bar(&self, window: &Window) -> bool {
         // Reserve space for all three window buttons and their padding before
         // deciding whether the headings fit beside them.
-        let controls = if crate::titlebar::show_controls(self.config.show_window_controls, window) {
+        let controls = if self.application_bar_visible()
+            && crate::titlebar::show_controls(
+                self.config.show_window_controls,
+                window.window_decorations(),
+            ) {
             112.
         } else {
             0.
@@ -25,29 +38,12 @@ impl SheprdWindow {
         window.viewport_size().width < px(560. * self.config.ui.size / 12. + controls)
     }
 
-    /// Tall enough for the window controls where the bar carries them.
-    fn application_bar_height(&self, window: &Window) -> f32 {
-        let font = &self.config.ui;
-        if crate::titlebar::show_controls(self.config.show_window_controls, window) {
-            (font.line_height() + 8.).max(crate::titlebar::HEIGHT)
-        } else {
-            font.line_height() + 8.
-        }
-    }
-
-    /// A hidden bar stays in the tree at no height, so its headings keep
-    /// measuring where the overlay's copy will put them when F10 opens a menu.
     pub(crate) fn render_application_bar(
         &self,
         window: &Window,
         cx: &mut Context<Self>,
     ) -> Stateful<Div> {
-        let layer = if self.menu_bar_visible {
-            BarLayer::Base
-        } else {
-            BarLayer::Collapsed
-        };
-        self.application_bar(layer, window, cx)
+        self.application_bar(BarLayer::Base, window, cx)
     }
 
     fn application_bar(
@@ -62,7 +58,7 @@ impl SheprdWindow {
         let headings = &cx.global::<super::super::Headings>().0;
         let compact = self.compact_application_bar(window);
         let entries: Vec<_> = if compact {
-            vec![(None, SharedString::from(fl!("menus-menu")), false)]
+            vec![(None, SharedString::from("Menu"), false)]
         } else {
             headings
                 .iter()
@@ -74,8 +70,8 @@ impl SheprdWindow {
         let buttons = &self.menu.application_bar.buttons;
         // Only the in-flow bar owns anchor measurements. Its overlay copy
         // must never replace those with geometry from a different frame.
-        let measure = layer != BarLayer::Overlay;
-        let collapsed = layer == BarLayer::Collapsed;
+        let measure = layer == BarLayer::Base;
+        let accessible = measure || !self.application_bar_visible();
         if measure {
             buttons
                 .borrow_mut()
@@ -83,17 +79,13 @@ impl SheprdWindow {
         }
         let font = &self.config.ui;
         let theme = &self.theme;
-        let height = if collapsed {
-            0.
-        } else {
-            self.application_bar_height(window)
-        };
+        let height = self.application_bar_height(window);
         let bar = div()
             .id("application-menu-bar")
             .debug_selector(|| "application-menu-bar".into())
             // The overlay's copy repeats this bar for the pointer only.
-            .when(measure, |bar| {
-                bar.role(Role::MenuBar).aria_label(fl!("menus-menu-bar"))
+            .when(accessible, |bar| {
+                bar.role(Role::MenuBar).aria_label("Menu bar")
             })
             .relative()
             .flex()
@@ -105,14 +97,11 @@ impl SheprdWindow {
             // The overlay copy lies on the one in the window, so only that
             // one takes the window's translucency.
             .bg(match layer {
-                BarLayer::Base | BarLayer::Collapsed => self.fill().panel(theme.surface),
+                BarLayer::Base => self.fill().panel(theme.surface),
                 BarLayer::Overlay => rgb(theme.surface).into(),
             })
-            // A border would keep a pixel of the hidden bar on screen.
-            .when(!collapsed, |bar| {
-                bar.border_b_1().border_color(rgb(theme.active))
-            })
-            .when(collapsed, |bar| bar.overflow_hidden())
+            .border_b_1()
+            .border_color(rgb(theme.active))
             .text_font(font)
             .text_size(px(font.size))
             .text_color(rgb(theme.foreground))
@@ -141,7 +130,7 @@ impl SheprdWindow {
                         div()
                             .id(SharedString::from(selector.clone()))
                             .debug_selector(move || selector.clone())
-                            .when(measure, |button| {
+                            .when(accessible, |button| {
                                 let heading = button.role(Role::MenuItem).aria_label(name.clone());
                                 let heading = crate::accessibility::disabled(heading, disabled);
                                 if disabled {
@@ -226,17 +215,16 @@ impl SheprdWindow {
                     }),
             )
             .child(div().flex_1().h_full().min_w(px(24.)))
-            .children(
-                crate::titlebar::controls(
+            .when(self.application_bar_visible(), |bar| {
+                bar.children(crate::titlebar::controls(
                     self.config.show_window_controls,
                     window,
                     theme,
                     |window, _| {
                         window.remove_window();
                     },
-                )
-                .filter(|_| !collapsed),
-            );
+                ))
+            });
         // Pass controls_enabled so users who hide the WM's title bar can still
         // drag the window from the menu bar.
         crate::titlebar::movable_with_controls(bar, window, self.config.show_window_controls)
@@ -303,12 +291,10 @@ impl SheprdWindow {
         };
         // Focus stays on the overlay while the arrows move the highlight, so
         // the overlay is the menu and the highlighted row its active item.
-        overlay = overlay
-            .role(Role::Menu)
-            .aria_label(menu.current().map_or_else(
-                || SharedString::from(fl!("menus-menu")),
-                |menu| menu.name.clone(),
-            ));
+        overlay = overlay.role(Role::Menu).aria_label(
+            menu.current()
+                .map_or_else(|| SharedString::from("Menu"), |menu| menu.name.clone()),
+        );
         let bar = self.menu.application_bar.bar.get();
         let content = self.menu.application_bar.content.get();
         let compact = self.compact_application_bar(window);
@@ -327,9 +313,11 @@ impl SheprdWindow {
         let font = &self.config.ui;
         let theme = &self.theme;
         let width = px(380. * font.size / 12.).min((content.size.width - px(16.)).max(px(0.)));
-        // From the top, not the bar's foot: a hidden bar measures no height,
-        // while the overlay's copy this hangs from has its full height.
-        let top = bar.top() + px(self.application_bar_height(window));
+        let top = if self.application_bar_visible() {
+            bar.bottom()
+        } else {
+            content.top() + px(self.application_bar_height(window))
+        };
         let current = menu.current();
         let items = current.map(|menu| menu.items.clone()).unwrap_or_else(|| {
             menu.menus
@@ -459,7 +447,7 @@ impl SheprdWindow {
                         .id("application-menu-back")
                         .debug_selector(|| "application-menu-back".into())
                         .role(Role::MenuItem)
-                        .aria_label(fl!("menus-back-to", menu = current.name.to_string()))
+                        .aria_label(format!("Back to {}", current.name))
                         .flex_none()
                         .p(px(8.))
                         .cursor_pointer()
@@ -497,10 +485,13 @@ impl SheprdWindow {
         overlay.child(
             anchored()
                 .position(point(
-                    button
-                        .left()
-                        .min((content.right() - width - px(8.)).max(content.left() + px(8.)))
-                        .max(content.left() + px(8.)),
+                    (if self.application_bar_visible() {
+                        button.left()
+                    } else {
+                        content.left()
+                    })
+                    .min((content.right() - width - px(8.)).max(content.left() + px(8.)))
+                    .max(content.left() + px(8.)),
                     top,
                 ))
                 .snap_to_window_with_margin(Edges::all(px(8.)))

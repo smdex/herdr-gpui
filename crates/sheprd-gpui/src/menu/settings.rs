@@ -197,6 +197,8 @@ impl SheprdWindow {
                         crate::caffeine::set_scope(config.status_bar.keep_awake_scope, cx);
                         crate::i18n::follow_config(&config.language, cx);
                         let menus_changed = crate::menus::changed(&this.config, &config);
+                        let report = Self::caffeine_report(cx);
+                        crate::caffeine::set_visible(config.status_bar.keep_awake, cx, report);
                         if config.keybindings != this.config.keybindings {
                             crate::actions::rebind_keys(cx);
                         } else if menus_changed {
@@ -389,6 +391,7 @@ impl SheprdWindow {
                 | Command::NextAgent
                 | Command::AgentNumber(_) => 1,
                 Command::NewWindow
+                | Command::ToggleMenuBar
                 | Command::ToggleSidebar
                 | Command::OpenCode
                 | Command::OpenPx0
