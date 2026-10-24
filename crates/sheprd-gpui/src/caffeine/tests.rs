@@ -13,6 +13,7 @@ mod right_click;
 mod scope;
 mod toggle;
 mod until_agents;
+mod visibility;
 mod work;
 
 /// Where a stand-in hold was made and released, in order.

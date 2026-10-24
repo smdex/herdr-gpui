@@ -4,7 +4,9 @@ use crate::sidebar::layout_tests::{fixture_window, full_draw};
 use gpui::{Modifiers, MouseButton};
 
 #[gpui::test]
-fn right_click_holds_until_agents_finish_and_either_click_ends_it(cx: &mut gpui::TestAppContext) {
+fn the_status_bar_menu_holds_until_agents_finish_and_either_control_ends_it(
+    cx: &mut gpui::TestAppContext,
+) {
     let log = Log::default();
     let (view, cx) = cx.add_window_view(fixture_window);
     cx.update(|window, cx| {
@@ -21,10 +23,18 @@ fn right_click_holds_until_agents_finish_and_either_click_ends_it(cx: &mut gpui:
         let at = cx.debug_bounds("status-caffeine").unwrap().center();
         cx.simulate_mouse_down(at, button, Modifiers::default());
         cx.simulate_mouse_up(at, button, Modifiers::default());
+        if button == MouseButton::Right {
+            cx.update(|window, cx| full_draw(window, cx).clear(cx));
+            let at = cx
+                .debug_bounds("status-awake-until-agents")
+                .unwrap()
+                .center();
+            cx.simulate_click(at, Modifiers::default());
+        }
         cx.run_until_parked();
         let state = cx.update(|window, cx| {
             full_draw(window, cx).clear(cx);
-            // The cup's right-click opens no other menu.
+            // Selecting a mode dismisses the menu.
             assert!(view.read(cx).menu.page.is_none());
             cup(cx)
         });
