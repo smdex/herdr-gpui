@@ -52,6 +52,29 @@ impl SheprdWindow {
                 cx,
             )
         });
+        let appearance = self.backdrop.limitations.visible().map(|lines| {
+            let (dismissed, toggled) = (lines.clone(), lines.clone());
+            self.render_diagnostic_card(
+                Card {
+                    selector: "appearance-limitations",
+                    label: "Window appearance".into(),
+                    lines,
+                    expanded: self.backdrop.limitations.expanded(),
+                    footer: None,
+                },
+                move |this, cx| {
+                    if this.backdrop.limitations.dismiss(&dismissed) {
+                        cx.notify();
+                    }
+                },
+                move |this, cx| {
+                    if this.backdrop.limitations.toggle(&toggled) {
+                        cx.notify();
+                    }
+                },
+                cx,
+            )
+        });
         let icon_font = self.icon_font_notice.visible().map(|lines| {
             let (dismissed, toggled) = (lines.clone(), lines.clone());
             let command =
@@ -117,7 +140,11 @@ impl SheprdWindow {
                     cx,
                 ))
             });
-        gui.into_iter().chain(icon_font).chain(endpoint).collect()
+        gui.into_iter()
+            .chain(appearance)
+            .chain(icon_font)
+            .chain(endpoint)
+            .collect()
     }
 
     /// A command the card names, in the terminal face on its own chip so it

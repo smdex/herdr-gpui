@@ -113,6 +113,7 @@ pub(crate) struct MenuState {
     /// The picker line to scroll into view once the list has been laid out:
     /// on the frame it first appears, GPUI drops a scroll request unapplied.
     pub(super) devices_reveal: std::cell::Cell<Option<usize>>,
+    pub(super) menu_scroll: ScrollHandle,
     pub(crate) usage_scroll: ScrollHandle,
     // Selection epoch and connection generation fence captured modal actions.
     pub(super) endpoint_target: (u64, u64),
@@ -380,6 +381,7 @@ impl MenuState {
             remote_host_ask: None,
             devices_scroll: ScrollHandle::new(),
             devices_reveal: std::cell::Cell::new(None),
+            menu_scroll: ScrollHandle::new(),
             usage_scroll: ScrollHandle::new(),
             endpoint_target: (0, 0),
             anchor: Point::default(),
@@ -467,6 +469,7 @@ impl MenuState {
         self.remote_host_ask = None;
         self.devices_scroll.set_offset(Point::default());
         self.devices_reveal.set(None);
+        self.menu_scroll.set_offset(Point::default());
         self.usage_scroll.set_offset(Point::default());
         self.opening_right_click = false;
         self.tab = None;

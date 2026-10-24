@@ -96,6 +96,7 @@ pub(crate) enum Page {
     RenameTab,
     /// Confirming a paired remote control device should be revoked.
     RevokeDevice,
+    StatusBar,
     Tab,
     /// Moving a linked worktree to another host.
     Teleport,
@@ -165,7 +166,8 @@ impl Page {
     pub(crate) fn pointer_anchored(self) -> bool {
         matches!(
             self,
-            Self::Workspace
+            Self::StatusBar
+                | Self::Workspace
                 | Self::Tab
                 | Self::RenameTab
                 | Self::MoveTab

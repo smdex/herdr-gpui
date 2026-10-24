@@ -173,6 +173,9 @@ pub struct WindowInfo {
     /// The workspace the window shows on its selected host.
     pub workspace: Option<String>,
     pub hosts: Vec<HostInfo>,
+    /// Current appearance limitations, even if their notice was dismissed.
+    #[serde(default)]
+    pub appearance_limitations: Vec<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

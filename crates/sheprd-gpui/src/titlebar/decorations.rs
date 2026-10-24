@@ -134,8 +134,8 @@ pub(crate) fn client(window: &Window) -> bool {
 /// decorations minimize/maximize may not work on some compositors (GNOME
 /// Wayland ignores client requests), but close and the user's choice to show
 /// them are respected.
-pub(crate) fn show_controls(enabled: bool, window: &Window) -> bool {
-    enabled || client(window)
+pub(crate) fn show_controls(enabled: bool, decorations: Decorations) -> bool {
+    enabled || matches!(decorations, Decorations::Client { .. })
 }
 
 /// Which buttons to draw, from what the compositor says it supports. Close
@@ -154,7 +154,7 @@ impl Buttons {
         // buttons regardless of what the WM reports. The WM-reported controls
         // only matter for client-decorated windows where the compositor decides.
         let force_all = enabled;
-        show_controls(enabled, window).then(|| Self {
+        show_controls(enabled, window.window_decorations()).then(|| Self {
             minimize: force_all || controls.minimize,
             maximize: force_all || controls.maximize,
             maximized: window.is_maximized(),

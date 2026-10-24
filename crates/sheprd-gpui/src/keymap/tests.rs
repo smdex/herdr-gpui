@@ -572,3 +572,5 @@ fn pane_keys_reject_typing_unsendable_targets_and_configured_commands() {
         Err(crate::Error::Keymap(Error::TooManyPaneKeys(MAX_PANE_KEYS)))
     ));
 }
+
+mod menu_bar;

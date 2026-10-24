@@ -27,6 +27,9 @@ fn describe_window(window: &WindowInfo, text: &mut String) {
     if let Some(workspace) = &window.workspace {
         let _ = writeln!(text, "    workspace {workspace}");
     }
+    for limitation in &window.appearance_limitations {
+        let _ = writeln!(text, "    appearance: {limitation}");
+    }
     for host in &window.hosts {
         let _ = writeln!(
             text,
@@ -163,3 +166,6 @@ pub(super) fn run_command(name: &str, context: &Context) -> crate::Result<Output
         },
     )
 }
+
+#[cfg(test)]
+mod tests;

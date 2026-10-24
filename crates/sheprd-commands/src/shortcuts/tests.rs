@@ -18,11 +18,16 @@ fn assert_ctrl_profile(profile: Profile) {
     let mut seen = HashMap::new();
     for info in COMMANDS {
         let shortcuts = profile(info.command);
-        assert!(
-            shortcuts.len() >= info.base_shortcuts().len(),
-            "{}",
-            info.name
-        );
+        if info.command == Command::ToggleMenuBar {
+            // macOS keeps its native menu; only Ctrl profiles have this toggle.
+            assert_eq!(shortcuts, ["ctrl-shift-m"]);
+        } else {
+            assert!(
+                shortcuts.len() >= info.base_shortcuts().len(),
+                "{}",
+                info.name
+            );
+        }
         for shortcut in shortcuts {
             let key = parse(shortcut);
             assert!(!key.modifiers.platform, "{shortcut}");

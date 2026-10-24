@@ -103,6 +103,14 @@ pub(crate) fn open_window(
 /// Where a window opens and the display its bounds refer to.
 pub(crate) type Placement = (Bounds<Pixels>, Option<DisplayId>);
 
+/// A request only; frame rendering continues to follow observed decorations.
+pub(crate) fn main_window_decorations(
+    request: bool,
+    compositor: &str,
+) -> Option<WindowDecorations> {
+    (request && compositor == "Wayland").then_some(WindowDecorations::Client)
+}
+
 /// Opens a main window at `placement`, or where the next one goes.
 fn open_window_placed(
     target: ConnectTarget,
@@ -128,6 +136,11 @@ fn open_window_placed(
             window_bounds: Some(WindowBounds::Windowed(bounds)),
             display_id,
             window_min_size: Some(size(px(640.), px(400.))),
+            window_decorations: main_window_decorations(
+                cx.try_global::<InitialAppearance>()
+                    .is_some_and(|appearance| appearance.config.request_client_side_decorations),
+                cx.compositor_name(),
+            ),
             titlebar: Some(titlebar::options(WINDOW_TITLE)),
             app_owns_titlebar_drag: cfg!(target_os = "macos"),
             app_id: Some(crate::constants::APP_ID.into()),
@@ -618,3 +631,7 @@ fn focus_running(
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+#[path = "app/tests/wayland_decorations.rs"]
+mod wayland_decorations;
