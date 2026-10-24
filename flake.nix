@@ -97,10 +97,12 @@
             # All Moonframe crates share this pinned Git checkout, including
             # when the optional feature is off and Cargo only vendors it.
             outputHashes."moonframe-0.3.1" = "sha256-DSroyTi58a5T15DKmZCs7v0vnYI6CtHxhaeMUw4xyYQ=";
+            # Both patched GPUI packages share the backport checkout; one hash covers it.
+            outputHashes."gpui-pre-0.3.6" = "sha256-s6zLgvhRJHDGIuoxbB4giMQ1a8g9mxi4p0SqTgjKakM=";
           };
           # The app starts chats with the sheprd-acp beside its executable,
           # runs the sheprd-remote-control beside it as a user service, runs
-          # automations in the sheprd-automate there, and starts sheprd-nearby
+          # automations in the sheprd-automate there, and starts herdr-nearby
           # for nearby pairing and presence over Bluetooth.
           cargoBuildFlags = [
             "-p"

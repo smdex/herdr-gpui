@@ -348,6 +348,21 @@ The change applies live; `config get focus_follows_mouse` reads it back.
 An unnamed tab shows its number. To show its agent's terminal title instead,
 run `sheprd config set tab_labels.agent_title true`.
 
+Status-bar items use the same settings as the bar's right-click menu and Settings:
+`usage.show`, `show_system_load`, `show_network_quality`, `show_listening_ports`,
+`status_bar.keep_awake`, `status_bar.show_theme`, `status_bar.show_shortcuts`, and
+`status_bar.show_report_issue`. For example:
+
+```sh
+sheprd config set status_bar.show_theme false
+sheprd config set status_bar.show_theme true  # restores the saved icon/label style
+sheprd config unset status_bar.show_theme    # follows legacy status_bar.theme
+```
+
+The three `show_*` button keys override legacy `"hidden"` values. Showing a legacy
+hidden button with no saved style uses a label. Hiding Keep Awake releases its
+active/pending hold; showing it does not activate one.
+
 ### Remote control
 
 | Command | What it does |

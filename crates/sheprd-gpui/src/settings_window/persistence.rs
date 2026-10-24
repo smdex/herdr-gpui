@@ -1,6 +1,5 @@
 //! Loading and saving preferences off the UI thread, then reconciling the result,
 //! including the config watcher and the saves that finish when the app quits.
-// i18n: migrated
 use super::{Section, SettingsWindow, layouts, themes};
 use crate::{
     config::{Config, FontFace, Theme},
@@ -216,7 +215,6 @@ impl SettingsWindow {
             let (shared, error, theme) = match herdr_settings::Settings::load() {
                 Ok(shared) => {
                     config.apply_shared_notifications(&shared);
-                    // i18n: data
                     let theme = if config.theme == "Follow Herdr" {
                         shared.theme(light)?.styled_for(&config)
                     } else {
@@ -224,7 +222,6 @@ impl SettingsWindow {
                     };
                     (Some(shared), None, theme)
                 }
-                // i18n: data
                 Err(error) if config.theme == "Follow Herdr" => return Err(error),
                 Err(error) => (
                     None,
@@ -268,6 +265,17 @@ impl SettingsWindow {
                 {
                     self.dropdown = None;
                 }
+                let view = cx.entity().downgrade();
+                crate::caffeine::set_visible(
+                    loaded.config.status_bar.keep_awake,
+                    cx,
+                    move |error, cx| {
+                        let _ = view.update(cx, |this, cx| {
+                            this.error = Some(error.to_string());
+                            cx.notify();
+                        });
+                    },
+                );
                 self.config = loaded.config;
                 if let Some(mode) = self.layout_intent {
                     self.config.layout.mode = mode;
@@ -474,9 +482,9 @@ impl SettingsWindow {
                 if !this.saving {
                     this.status = match (saved.is_ok(), reloaded) {
                         (true, true) => None,
-                        (true, false) => Some(fl!("settings-saved-unreloaded")),
-                        (false, true) => Some(fl!("settings-save-failed-reloaded")),
-                        (false, false) => Some(fl!("settings-save-failed")),
+                        (true, false) => Some("Saved; could not reload current preferences".into()),
+                        (false, true) => Some("Save failed; reloaded current preferences".into()),
+                        (false, false) => Some("Save failed; reload before editing again".into()),
                     };
                 }
                 if let Err(error) = &saved {
