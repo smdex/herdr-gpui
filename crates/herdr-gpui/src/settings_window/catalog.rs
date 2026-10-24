@@ -17,6 +17,8 @@ pub(super) struct Entry {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum Availability {
     Always,
+    InWindowMenu,
+    Wayland,
     /// Only while the drafted theme follows the system as a light/dark pair.
     FollowingSystemTheme,
     /// Only on Windows, which has the only platform code for it.
@@ -289,6 +291,20 @@ pub(super) const CATALOG: &[Entry] = &[
         "Smooth scrolling",
         "Scroll terminal history between rows; off steps whole rows.",
     ),
+    entry(
+        Section::General,
+        "general-menu-bar",
+        "Show menu bar",
+        "Main windows. F10 opens the menu temporarily when hidden.",
+    )
+    .only(Availability::InWindowMenu),
+    entry(
+        Section::General,
+        "general-client-decorations",
+        "Request client-side decorations",
+        "Wayland main windows only. Reopen the window to apply. The compositor may decline; a confirmed fallback appears in Window appearance.",
+    )
+    .only(Availability::Wayland),
     // One per `[features]` flag; a test checks none is missing.
     // keep-sorted start
     feature(Feature::AcpChats),

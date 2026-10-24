@@ -187,6 +187,8 @@ impl HerdrWindow {
                         });
                         crate::caffeine::set_scope(config.status_bar.keep_awake_scope, cx);
                         let menus_changed = crate::menus::changed(&this.config, &config);
+                        let report = Self::caffeine_report(cx);
+                        crate::caffeine::set_visible(config.status_bar.keep_awake, cx, report);
                         if config.keybindings != this.config.keybindings {
                             crate::actions::rebind_keys(cx);
                         } else if menus_changed {
@@ -372,6 +374,7 @@ impl HerdrWindow {
                 | Command::NextAgent
                 | Command::AgentNumber(_) => 1,
                 Command::NewWindow
+                | Command::ToggleMenuBar
                 | Command::ToggleSidebar
                 | Command::OpenCode
                 | Command::OpenPx0

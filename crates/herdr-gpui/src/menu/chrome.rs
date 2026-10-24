@@ -429,7 +429,8 @@ impl HerdrWindow {
             .when(
                 matches!(
                     page,
-                    Page::Tab
+                    Page::StatusBar
+                        | Page::Tab
                         | Page::RenameTab
                         | Page::MoveTab
                         | Page::Group
@@ -448,7 +449,9 @@ impl HerdrWindow {
                     // A list of actions takes its longest label's width, which
                     // the UI font and size decide, so no fixed width fits all.
                     let forwards = page == Page::Host && self.host_menu_lists_forwards();
-                    if matches!(page, Page::Tab | Page::Pane | Page::Host) && !forwards {
+                    if matches!(page, Page::StatusBar | Page::Tab | Page::Pane | Page::Host)
+                        && !forwards
+                    {
                         return panel
                             .min_w(px(180.).min(room))
                             .max_w(room)
@@ -625,7 +628,12 @@ impl HerdrWindow {
                     }
                 }))
             });
-        if page == Page::Menu {
+        if matches!(page, Page::Menu | Page::StatusBar) {
+            panel = panel.track_scroll(&self.menu.menu_scroll);
+        }
+        if page == Page::StatusBar {
+            panel = self.render_status_bar_menu(panel, cx);
+        } else if page == Page::Menu {
             for (index, item) in self.menu_items().into_iter().enumerate() {
                 panel = panel.child(
                     div()

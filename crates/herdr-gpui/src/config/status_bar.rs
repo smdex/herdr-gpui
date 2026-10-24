@@ -51,6 +51,16 @@ impl Button {
         self != Self::Hidden
     }
 
+    /// An explicit visibility override wins over legacy `hidden`; that has no
+    /// remembered style, so showing it again uses the default label.
+    pub(crate) fn with_visibility(self, shown: Option<bool>) -> Self {
+        match (shown, self) {
+            (Some(false), _) => Self::Hidden,
+            (Some(true), Self::Hidden) => Self::Label,
+            _ => self,
+        }
+    }
+
     fn name(self) -> &'static str {
         match self {
             Self::Label => "label",
@@ -83,6 +93,9 @@ pub struct StatusBar {
     pub theme: Button,
     pub shortcuts: Button,
     pub report_issue: Button,
+    pub show_theme: Option<bool>,
+    pub show_shortcuts: Option<bool>,
+    pub show_report_issue: Option<bool>,
 }
 
 impl Default for StatusBar {
@@ -97,6 +110,9 @@ impl Default for StatusBar {
             theme: Button::default(),
             shortcuts: Button::default(),
             report_issue: Button::default(),
+            show_theme: None,
+            show_shortcuts: None,
+            show_report_issue: None,
         }
     }
 }
@@ -112,6 +128,9 @@ pub(crate) enum Edit {
     Theme(Button),
     Shortcuts(Button),
     ReportIssue(Button),
+    ShowTheme(bool),
+    ShowShortcuts(bool),
+    ShowReportIssue(bool),
 }
 
 impl Edit {
@@ -124,6 +143,9 @@ impl Edit {
             Self::KeepAwakeScope(scope) => ("keep_awake_scope", scope.name().into()),
             Self::Theme(button) => ("theme", button.name().into()),
             Self::Shortcuts(button) => ("shortcuts", button.name().into()),
+            Self::ShowTheme(shown) => ("show_theme", shown.into()),
+            Self::ShowShortcuts(shown) => ("show_shortcuts", shown.into()),
+            Self::ShowReportIssue(shown) => ("show_report_issue", shown.into()),
             Self::ReportIssue(button) => ("report_issue", button.name().into()),
         }
     }

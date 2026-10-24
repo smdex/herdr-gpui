@@ -74,7 +74,7 @@ fn every_catalog_id_is_a_rendered_row(cx: &mut TestAppContext) {
         for entry in catalog::CATALOG.iter().filter(|e| e.section == section) {
             // A row the fixture's state does not render, such as the theme
             // side row outside following, has its own test.
-            if !view.read_with(cx, |view, _| view.available(entry.availability)) {
+            if !view.read_with(cx, |view, cx| view.available(entry.availability, cx)) {
                 continue;
             }
             assert!(
@@ -177,8 +177,8 @@ fn enter_picks_the_first_result_and_escape_clears(cx: &mut TestAppContext) {
 fn search_offers_the_editing_row_only_while_following_a_pair(cx: &mut TestAppContext) {
     use crate::config::ThemeName;
     let (view, cx) = cx.add_window_view(skill_fixture);
-    let side = |view: &SettingsWindow| {
-        view.visible_results()
+    let side = |view: &SettingsWindow, cx: &App| {
+        view.visible_results(cx)
             .iter()
             .any(|index| catalog::CATALOG[*index].id == "theme-side")
     };
@@ -192,9 +192,9 @@ fn search_offers_the_editing_row_only_while_following_a_pair(cx: &mut TestAppCon
                 .any(|index| catalog::CATALOG[*index].id == "theme-side"),
             "the catalog still knows the row"
         );
-        assert!(!side(view), "a single theme renders no Editing row");
+        assert!(!side(view, cx), "a single theme renders no Editing row");
         view.config.theme = ThemeName::system("Catppuccin Latte", "Catppuccin Mocha");
         assert!(ThemeName::follows_system(view.drafted_theme()));
-        assert!(side(view), "a following pair does");
+        assert!(side(view, cx), "a following pair does");
     });
 }

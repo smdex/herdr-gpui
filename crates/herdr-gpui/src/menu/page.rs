@@ -95,6 +95,7 @@ pub(crate) enum Page {
     RevokeDevice,
     /// Local sessions and remote devices, with the state of each.
     Sessions,
+    StatusBar,
     Tab,
     /// Moving a linked worktree to another host.
     Teleport,
@@ -159,7 +160,8 @@ impl Page {
     pub(crate) fn pointer_anchored(self) -> bool {
         matches!(
             self,
-            Self::Workspace
+            Self::StatusBar
+                | Self::Workspace
                 | Self::Tab
                 | Self::RenameTab
                 | Self::MoveTab

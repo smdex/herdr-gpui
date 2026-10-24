@@ -11,10 +11,26 @@ enum BarLayer {
 }
 
 impl HerdrWindow {
+    fn application_bar_height(&self, window: &Window) -> f32 {
+        let height = self.config.ui.line_height() + 8.;
+        if crate::titlebar::show_controls(
+            self.config.show_window_controls,
+            window.window_decorations(),
+        ) {
+            height.max(crate::titlebar::HEIGHT)
+        } else {
+            height
+        }
+    }
+
     fn compact_application_bar(&self, window: &Window) -> bool {
         // Reserve space for all three window buttons and their padding before
         // deciding whether the headings fit beside them.
-        let controls = if crate::titlebar::show_controls(self.config.show_window_controls, window) {
+        let controls = if self.application_bar_visible()
+            && crate::titlebar::show_controls(
+                self.config.show_window_controls,
+                window.window_decorations(),
+            ) {
             112.
         } else {
             0.
@@ -55,6 +71,7 @@ impl HerdrWindow {
         // Only the in-flow bar owns anchor measurements. Its overlay copy
         // must never replace those with geometry from a different frame.
         let measure = layer == BarLayer::Base;
+        let accessible = measure || !self.application_bar_visible();
         if measure {
             buttons
                 .borrow_mut()
@@ -62,16 +79,12 @@ impl HerdrWindow {
         }
         let font = &self.config.ui;
         let theme = &self.theme;
-        let height = if crate::titlebar::show_controls(self.config.show_window_controls, window) {
-            (font.line_height() + 8.).max(crate::titlebar::HEIGHT)
-        } else {
-            font.line_height() + 8.
-        };
+        let height = self.application_bar_height(window);
         let bar = div()
             .id("application-menu-bar")
             .debug_selector(|| "application-menu-bar".into())
             // The overlay's copy repeats this bar for the pointer only.
-            .when(measure, |bar| {
+            .when(accessible, |bar| {
                 bar.role(Role::MenuBar).aria_label("Menu bar")
             })
             .relative()
@@ -117,7 +130,7 @@ impl HerdrWindow {
                         div()
                             .id(SharedString::from(selector.clone()))
                             .debug_selector(move || selector.clone())
-                            .when(measure, |button| {
+                            .when(accessible, |button| {
                                 let heading = button.role(Role::MenuItem).aria_label(name.clone());
                                 let heading = crate::accessibility::disabled(heading, disabled);
                                 if disabled {
@@ -202,14 +215,16 @@ impl HerdrWindow {
                     }),
             )
             .child(div().flex_1().h_full().min_w(px(24.)))
-            .children(crate::titlebar::controls(
-                self.config.show_window_controls,
-                window,
-                theme,
-                |window, _| {
-                    window.remove_window();
-                },
-            ));
+            .when(self.application_bar_visible(), |bar| {
+                bar.children(crate::titlebar::controls(
+                    self.config.show_window_controls,
+                    window,
+                    theme,
+                    |window, _| {
+                        window.remove_window();
+                    },
+                ))
+            });
         // Pass controls_enabled so users who hide the WM's title bar can still
         // drag the window from the menu bar.
         crate::titlebar::movable_with_controls(bar, window, self.config.show_window_controls)
@@ -298,7 +313,11 @@ impl HerdrWindow {
         let font = &self.config.ui;
         let theme = &self.theme;
         let width = px(380. * font.size / 12.).min((content.size.width - px(16.)).max(px(0.)));
-        let top = bar.bottom();
+        let top = if self.application_bar_visible() {
+            bar.bottom()
+        } else {
+            content.top() + px(self.application_bar_height(window))
+        };
         let current = menu.current();
         let items = current.map(|menu| menu.items.clone()).unwrap_or_else(|| {
             menu.menus
@@ -466,10 +485,13 @@ impl HerdrWindow {
         overlay.child(
             anchored()
                 .position(point(
-                    button
-                        .left()
-                        .min((content.right() - width - px(8.)).max(content.left() + px(8.)))
-                        .max(content.left() + px(8.)),
+                    (if self.application_bar_visible() {
+                        button.left()
+                    } else {
+                        content.left()
+                    })
+                    .min((content.right() - width - px(8.)).max(content.left() + px(8.)))
+                    .max(content.left() + px(8.)),
                     top,
                 ))
                 .snap_to_window_with_margin(Edges::all(px(8.)))

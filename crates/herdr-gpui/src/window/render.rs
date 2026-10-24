@@ -732,7 +732,7 @@ impl Render for HerdrWindow {
         let merged = section.is_none()
             && slots
                 .first()
-                .is_some_and(|first| self.tabs_in_titlebar(first.id, cx));
+                .is_some_and(|first| self.tabs_in_titlebar(first.id, window, cx));
         let count = slots.len();
         let mut groups = Vec::with_capacity(count);
         for (slot, shown) in slots.into_iter().zip(shown) {
@@ -815,9 +815,18 @@ impl Render for HerdrWindow {
         let zen = self.zen_layout();
         let root = div()
             .capture_key_down(cx.listener(Self::application_menu_shortcut))
+            .map(|root| {
+                #[cfg(windows)]
+                let root = root.on_modifiers_changed(cx.listener(Self::application_menu_modifiers));
+                root
+            })
             .capture_key_down(cx.listener(Self::chrome_focus_key))
             .on_modifiers_changed(cx.listener(Self::double_shift_modifiers))
-            .capture_any_mouse_down(cx.listener(|this, _, _, _| this.shift_taps.cancel()))
+            .capture_any_mouse_down(cx.listener(|this, _, _, _| {
+                this.shift_taps.cancel();
+                #[cfg(windows)]
+                this.menu.application_bar.cancel_alt();
+            }))
             .child({
                 let entity = cx.weak_entity();
                 let menu_bounds = self.menu.application_bar.content.clone();
@@ -930,14 +939,19 @@ impl Render for HerdrWindow {
             .text_color(rgb(self.theme.foreground))
             .text_font(&self.config.ui)
             .text_size(px(self.config.ui.size))
-            .when(crate::menus::IN_WINDOW && !zen, |root| {
+            .when(self.application_bar_visible(), |root| {
                 root.child(self.render_application_bar(window, cx))
             })
             .when(!merged && !zen, |root| {
                 root.child(self.render_titlebar(window, cx))
             })
             .when(zen, |root| {
-                root.children(crate::titlebar::zen_inset(fill.ground(), window))
+                root.children(crate::titlebar::zen_inset(
+                    fill.ground(),
+                    &self.theme,
+                    crate::menus::IN_WINDOW && self.config.show_window_controls,
+                    window,
+                ))
             })
             .child(
                 div()

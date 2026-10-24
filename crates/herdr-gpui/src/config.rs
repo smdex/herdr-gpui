@@ -239,6 +239,8 @@ pub struct Config {
     /// Whether a linked worktree whose pull request is merged is removed, and
     /// its workspace closed, without asking. The focused workspace still asks.
     pub remove_merged_worktrees: bool,
+    /// Request Wayland client decorations for newly opened main windows only.
+    pub request_client_side_decorations: bool,
     pub show_agents: bool,
     /// The "Agents" title row above the agents list, which also holds the sort
     /// toggle. The sort then follows Herdr's `ui.agent_panel_sort` unless it
@@ -254,6 +256,8 @@ pub struct Config {
     pub show_gpu_load: bool,
     /// Ports each workspace listens on, in the sidebar and the status bar.
     pub show_listening_ports: bool,
+    /// Saved visibility of the main-window menu row on Linux and Windows.
+    pub show_menu_bar: bool,
     /// Latency and loss from this machine, by timed TCP connects, in the status bar.
     pub show_network_quality: bool,
     /// The repository owner's avatar, or the GitHub mark, before a space's name.
@@ -431,11 +435,13 @@ impl Default for Config {
             px0: crate::px0::Config::default(),
             remote: RemoteConfig::default(),
             remove_merged_worktrees: false,
+            request_client_side_decorations: false,
             show_agents: true,
             show_agents_header: true,
             show_device_icons: true,
             show_gpu_load: false,
             show_listening_ports: true,
+            show_menu_bar: true,
             show_network_quality: false,
             show_repository_icons: true,
             show_sidebar_gpu_load: false,
@@ -511,11 +517,13 @@ struct Settings {
     px0: crate::px0::Config,
     remote: RemoteConfig,
     remove_merged_worktrees: Option<bool>,
+    request_client_side_decorations: Option<bool>,
     show_agents: Option<bool>,
     show_agents_header: Option<bool>,
     show_device_icons: Option<bool>,
     show_gpu_load: Option<bool>,
     show_listening_ports: Option<bool>,
+    show_menu_bar: Option<bool>,
     show_network_quality: Option<bool>,
     show_repository_icons: Option<bool>,
     show_sidebar_gpu_load: Option<bool>,
@@ -854,11 +862,14 @@ impl Config {
         config.confirm_close_workspace = settings.confirm_close_workspace.unwrap_or(true);
         config.focus_follows_mouse = settings.focus_follows_mouse.unwrap_or(true);
         config.remove_merged_worktrees = settings.remove_merged_worktrees.unwrap_or(false);
+        config.request_client_side_decorations =
+            settings.request_client_side_decorations.unwrap_or(false);
         config.show_agents = settings.show_agents.unwrap_or(true);
         config.show_agents_header = settings.show_agents_header.unwrap_or(true);
         config.show_device_icons = settings.show_device_icons.unwrap_or(true);
         config.show_gpu_load = settings.show_gpu_load.unwrap_or(false);
         config.show_listening_ports = settings.show_listening_ports.unwrap_or(true);
+        config.show_menu_bar = settings.show_menu_bar.unwrap_or(true);
         config.show_network_quality = settings.show_network_quality.unwrap_or(false);
         config.show_repository_icons = settings.show_repository_icons.unwrap_or(true);
         config.show_sidebar_gpu_load = settings.show_sidebar_gpu_load.unwrap_or(false);

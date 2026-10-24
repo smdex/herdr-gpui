@@ -15,6 +15,7 @@ impl Page {
             | Self::Host
             | Self::Menu
             | Self::Pane
+            | Self::StatusBar
             | Self::Tab
             | Self::Workspace => Role::Menu,
             _ => Role::Dialog,
@@ -87,6 +88,7 @@ impl Page {
             Self::RenameTab => "Rename tab",
             Self::RevokeDevice => "Revoke device",
             Self::Sessions => "Sessions",
+            Self::StatusBar => "Status bar",
             Self::Tab => "Tab",
             Self::Teleport => "Teleport",
             Self::Themes => "Themes",

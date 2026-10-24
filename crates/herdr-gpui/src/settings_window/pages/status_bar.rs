@@ -24,6 +24,7 @@ struct ButtonRow {
     title: &'static str,
     current: Button,
     edit: fn(Button) -> Edit,
+    visibility: fn(bool) -> Edit,
 }
 
 impl SettingsWindow {
@@ -41,24 +42,27 @@ impl SettingsWindow {
                 toggle: "status-theme-toggle",
                 style: "status-theme-style",
                 title: "Theme",
-                current: items.theme,
+                current: items.theme.with_visibility(items.show_theme),
                 edit: Edit::Theme,
+                visibility: Edit::ShowTheme,
             },
             ButtonRow {
                 id: "status-shortcuts",
                 toggle: "status-shortcuts-toggle",
                 style: "status-shortcuts-style",
                 title: "Shortcuts",
-                current: items.shortcuts,
+                current: items.shortcuts.with_visibility(items.show_shortcuts),
                 edit: Edit::Shortcuts,
+                visibility: Edit::ShowShortcuts,
             },
             ButtonRow {
                 id: "status-report-issue",
                 toggle: "status-report-issue-toggle",
                 style: "status-report-issue-style",
                 title: "Report issue",
-                current: items.report_issue,
+                current: items.report_issue.with_visibility(items.show_report_issue),
                 edit: Edit::ReportIssue,
+                visibility: Edit::ShowReportIssue,
             },
         ];
         div()
@@ -206,9 +210,9 @@ impl SettingsWindow {
             title,
             current,
             edit,
+            visibility,
         } = button;
         let shown = current.shown();
-        let toggled = if shown { Button::Hidden } else { Button::Label };
         ui::row(&self.theme, id, title)
             .control(ui::segmented(
                 &self.theme,
@@ -220,7 +224,12 @@ impl SettingsWindow {
                     this.save_preference(Preference::StatusBar(edit(choice)), cx)
                 }),
             ))
-            .switch(self.preference_toggle(toggle, shown, Preference::StatusBar(edit(toggled)), cx))
+            .switch(self.preference_toggle(
+                toggle,
+                shown,
+                Preference::StatusBar(visibility(!shown)),
+                cx,
+            ))
     }
 }
 

@@ -28,6 +28,9 @@ mod shortcut_editor;
 #[cfg(all(feature = "integration-test", target_os = "linux"))]
 pub(crate) use shortcut_editor::verify_native as verify_shortcut_editor;
 mod state;
+mod status_bar;
+#[cfg(test)]
+pub(crate) use status_bar::StatusBarIo;
 mod teleport;
 mod version_mismatch;
 mod whats_new;

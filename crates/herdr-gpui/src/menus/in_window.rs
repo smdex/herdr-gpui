@@ -15,9 +15,20 @@ use std::{
 
 #[derive(Default)]
 pub(crate) struct Geometry {
+    #[cfg(any(windows, all(test, target_os = "linux")))]
+    alt_armed: bool,
+    #[cfg(any(windows, all(test, target_os = "linux")))]
+    alt_modifiers: Modifiers,
     pub(crate) content: Rc<Cell<Bounds<Pixels>>>,
     bar: Rc<Cell<Bounds<Pixels>>>,
     buttons: Rc<RefCell<Vec<Bounds<Pixels>>>>,
+}
+
+#[cfg(any(windows, all(test, target_os = "linux")))]
+impl Geometry {
+    pub(crate) fn cancel_alt(&mut self) {
+        self.alt_armed = false;
+    }
 }
 
 pub(crate) struct OpenMenu {
@@ -110,12 +121,20 @@ fn validate(menu: &mut OwnedMenu, window: &Window, cx: &mut App) {
 }
 
 impl HerdrWindow {
+    pub(crate) fn application_bar_visible(&self) -> bool {
+        super::IN_WINDOW && self.config.show_menu_bar && !self.zen_layout()
+    }
+
     pub(crate) fn application_menu_shortcut(
         &mut self,
         event: &KeyDownEvent,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        #[cfg(any(windows, all(test, target_os = "linux")))]
+        {
+            self.menu.application_bar.alt_armed = false;
+        }
         if super::IN_WINDOW
             && self.menu.page.is_none()
             && event.keystroke.key == "f10"
@@ -124,6 +143,40 @@ impl HerdrWindow {
             self.open_application_menu(Some(0), window, cx);
             cx.stop_propagation();
             window.prevent_default();
+        }
+    }
+
+    #[cfg(any(windows, all(test, target_os = "linux")))]
+    pub(crate) fn application_menu_modifiers(
+        &mut self,
+        event: &ModifiersChangedEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let alt = Modifiers {
+            alt: true,
+            ..Modifiers::default()
+        };
+        let previous = std::mem::replace(
+            &mut self.menu.application_bar.alt_modifiers,
+            event.modifiers,
+        );
+        if event.modifiers == alt {
+            if previous == Modifiers::default() && self.active {
+                self.menu.application_bar.alt_armed = true;
+            }
+        } else {
+            let activate = std::mem::take(&mut self.menu.application_bar.alt_armed)
+                && event.modifiers == Modifiers::default()
+                && self.active;
+            if activate {
+                if self.menu.page == Some(Page::Application) {
+                    self.dismiss_menu(window, cx);
+                } else if self.menu.page.is_none() {
+                    self.open_application_menu(Some(0), window, cx);
+                }
+                cx.stop_propagation();
+            }
         }
     }
 

@@ -304,8 +304,12 @@ impl HerdrWindow {
                 }
                 cx.notify();
             }
-            "up" | "down" if self.menu.page == Some(Page::Menu) => {
-                let count = self.menu_items().len();
+            "up" | "down" if matches!(self.menu.page, Some(Page::Menu | Page::StatusBar)) => {
+                let count = if self.menu.page == Some(Page::StatusBar) {
+                    self.status_bar_menu_count()
+                } else {
+                    self.menu_items().len()
+                };
                 if count > 0 {
                     self.menu.selected =
                         Some(match (self.menu.selected, event.keystroke.key.as_str()) {
@@ -314,6 +318,9 @@ impl HerdrWindow {
                             (Some(index), "up") => (index + count - 1) % count,
                             (Some(index), _) => (index + 1) % count,
                         });
+                }
+                if let Some(index) = self.menu.selected {
+                    self.menu.menu_scroll.scroll_to_item(index);
                 }
                 cx.notify();
             }
@@ -363,6 +370,11 @@ impl HerdrWindow {
             }
             "enter" if self.menu.page == Some(Page::About) => {
                 self.dismiss_menu(window, cx);
+            }
+            "enter" | "space" if self.menu.page == Some(Page::StatusBar) => {
+                if let Some(index) = self.menu.selected {
+                    self.activate_status_bar_menu(index, window, cx);
+                }
             }
             "enter" if self.menu.page == Some(Page::Menu) => {
                 if let Some(item) = self

@@ -251,6 +251,17 @@ impl SettingsWindow {
                     .as_ref()
                     .map(|_| (self.config.theme.clone(), self.theme.clone()));
                 crate::caffeine::set_scope(loaded.config.status_bar.keep_awake_scope, cx);
+                let view = cx.entity().downgrade();
+                crate::caffeine::set_visible(
+                    loaded.config.status_bar.keep_awake,
+                    cx,
+                    move |error, cx| {
+                        let _ = view.update(cx, |this, cx| {
+                            this.error = Some(error.to_string());
+                            cx.notify();
+                        });
+                    },
+                );
                 self.config = loaded.config;
                 if let Some(mode) = self.layout_intent {
                     self.config.layout.mode = mode;

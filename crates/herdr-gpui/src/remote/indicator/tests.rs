@@ -70,6 +70,30 @@ fn the_title_bar_offers_pairing_until_a_phone_is_paired(cx: &mut TestAppContext)
     });
 }
 
+/// A hidden menu bar moves the window controls into the title bar, so the
+/// pairing button must shrink like the git button instead of pushing the
+/// account slot or the controls out of a 320px window.
+#[gpui::test]
+fn the_pair_button_shrinks_before_the_account_and_window_controls(cx: &mut TestAppContext) {
+    let (view, cx) = window(cx, Vec::new(), 0);
+    view.update(cx, |view, _| {
+        view.config.show_menu_bar = false;
+        view.config.show_window_controls = true;
+    });
+    cx.simulate_resize(size(px(320.), px(240.)));
+    draw(cx);
+    let remote = cx.debug_bounds("titlebar-remote").unwrap();
+    let account = cx.debug_bounds("titlebar-account-slot").unwrap();
+    let controls = cx.debug_bounds("window-controls").unwrap();
+    assert!(remote.right() <= account.left(), "{remote:?} {account:?}");
+    assert!(
+        account.right() <= controls.left(),
+        "{account:?} {controls:?}"
+    );
+    assert!(controls.right() <= px(320.), "{controls:?}");
+    assert!(account.size.width > px(0.), "{account:?}");
+}
+
 #[gpui::test]
 fn the_title_bar_lists_paired_phones_and_disconnects_one(cx: &mut TestAppContext) {
     let devices = vec![phone("d1", "iPhone", true), phone("d2", "iPad", false)];

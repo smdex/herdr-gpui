@@ -32,13 +32,10 @@ fn status_bar_controls_save_typed_edits(cx: &mut TestAppContext) {
             Edit::SystemLoad(Detail::Compact),
         ),
         ("status-keep-awake-toggle", Edit::KeepAwake(false)),
-        ("status-theme-toggle", Edit::Theme(Button::Hidden)),
+        ("status-theme-toggle", Edit::ShowTheme(false)),
         ("status-theme-style-1", Edit::Theme(Button::Icon)),
         ("status-shortcuts-style-1", Edit::Shortcuts(Button::Icon)),
-        (
-            "status-report-issue-toggle",
-            Edit::ReportIssue(Button::Hidden),
-        ),
+        ("status-report-issue-toggle", Edit::ShowReportIssue(false)),
     ] {
         assert_eq!(
             click(cx, selector),
@@ -73,6 +70,6 @@ fn status_bar_controls_save_typed_edits(cx: &mut TestAppContext) {
     assert_eq!(click(cx, "status-theme-style-1"), None);
     assert_eq!(
         click(cx, "status-theme-toggle"),
-        Some(Preference::StatusBar(Edit::Theme(Button::Label)))
+        Some(Preference::StatusBar(Edit::ShowTheme(true)))
     );
 }

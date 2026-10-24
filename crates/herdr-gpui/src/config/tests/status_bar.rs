@@ -37,6 +37,7 @@ fn status_bar_items_parse_and_report_unknown_keys() -> anyhow::Result<()> {
             theme: Button::Icon,
             shortcuts: Button::Hidden,
             report_issue: Button::Icon,
+            ..StatusBar::default()
         }
     );
     assert_eq!(config.unknown_keys, ["status_bar.clock"]);
@@ -87,6 +88,7 @@ fn status_bar_edits_round_trip_through_the_overrides_file() -> anyhow::Result<()
             theme: Button::Icon,
             shortcuts: Button::Hidden,
             report_issue: Button::Icon,
+            ..StatusBar::default()
         }
     );
     for edit in [

@@ -117,9 +117,20 @@ show_network_quality = false
 # and momentum; false scrolls by whole rows. Applications reading the mouse
 # always get whole rows. Also under Settings > General.
 smooth_scroll = true
+# Linux/Windows main windows: hide the menu row; F10 opens it as an overlay.
+# Windows also accepts Alt alone. Settings > General; Ctrl+Shift+M toggles.
+show_menu_bar = true
+
+# Wayland main windows only: ask the compositor for client-side decorations.
+# Off preserves GPUI/compositor defaults. Reopen the window to apply a change;
+# the compositor can decline. Settings, Logs and other secondary windows are unchanged.
+request_client_side_decorations = false
+
 # Linux only: draw minimize, maximize, and close buttons at the right end of the
-# menu bar. When true the window needs no title bar from the window manager;
-# disable server-side decorations in your compositor or window manager settings.
+# menu bar, or header/tab row and zen band when the menu is hidden. Defaults
+# to true and may duplicate compositor buttons; set false to avoid duplication.
+# This controls buttons only, not decoration negotiation; use the separate
+# request_client_side_decorations preference above for a Wayland request.
 # On Wayland without server-side decorations (GNOME), buttons are always shown
 # regardless of this setting.
 # show_window_controls = true
@@ -278,6 +289,7 @@ project_roots = []
 # close_tab = "cmd-shift-w"
 # focus_tab_1 = "cmd-1"   # through focus_tab_9 = "cmd-9"
 # toggle_sidebar = "cmd-b"
+# toggle_menu_bar = "ctrl-shift-m"  # Linux/Windows; saved across main windows
 # toggle_status_bar = "cmd-ctrl-b"   # unbound by default
 # toggle_zen_mode = "ctrl-cmd-z"   # Linux and Windows: "ctrl-alt-z"
 # increase_font_size = ["cmd-=", "cmd-+"]
@@ -709,6 +721,7 @@ size = 12
 # "detailed" draws a GPU graph and a video memory meter; "compact" the shares.
 # gpu_detail = "detailed"
 # The cup that keeps the machine awake; it stays while holding, so it can stop.
+# Hiding the cup releases an active or pending hold; showing it does not start one.
 # keep_awake = true
 # What the cup keeps awake: "display" holds the display and the system, so the
 # screen never locks; "system" holds only the system (like `caffeinate -i`) and
@@ -719,6 +732,12 @@ size = 12
 # theme = "label"
 # shortcuts = "label"
 # report_issue = "label"
+# Right-click the bar or use Settings to hide buttons without losing their style.
+# Optional booleans override the legacy button values above, including "hidden".
+# Without an override, "hidden" stays hidden; showing it restores "label".
+# show_theme = true
+# show_shortcuts = true
+# show_report_issue = true
 
 # Zen mode (View > Toggle Zen Mode, or `toggle_zen_mode`) hides the
 # header, sidebar, tab strips, status bar, and notices, and every group but

@@ -1172,9 +1172,33 @@ is shared; Intel GPUs report no usage without root and are left out. A remote
 host is probed in the same SSH step as its CPU and memory. While the settings
 are both off no GPU tool runs on any host.
 
+Right-click anywhere in the status bar for checked **Show** items: **Usage**,
+**CPU and memory**, **Network quality**, **Listening ports**, **Keep Awake**,
+**Theme**, **Shortcuts**, and **Report issue**. Hidden items stay in this menu.
+Changes use the same saved settings as **Settings > Status bar** (listening
+ports are under **General**) and apply across windows and restarts. Hiding
+Usage stops quota polling; CPU/memory and listening-port visibility also affect
+the sidebar. Model, connection/error messages, and version/update information
+are not optional. Arrow keys select a menu row, Enter/Space activates it, and
+Escape or clicking outside dismisses it.
+
+Button visibility uses `[status_bar] show_theme`, `show_shortcuts`, and
+`show_report_issue` when explicitly set. These booleans override the legacy
+`theme`, `shortcuts`, and `report_issue` visibility without changing their
+`"icon"`/`"label"` style. With no visibility override, legacy `"hidden"` still
+hides a button; restoring that legacy value uses a label because no prior style
+was saved. Detailed/compact readings are likewise preserved. For scripts, use
+the existing CLI, for example `herdr-gpui config set status_bar.show_theme false`.
+
 The coffee cup in the status bar keeps this machine's display on and stops it
 from sleeping when idle, for as long as the cup is full; click it again to let
-go. It is app-wide, so every window shows the same cup. macOS holds power
+go. The bar's context menu also offers **Keep Awake until agents finish** while
+the cup is shown. Hiding the cup releases either hold, including an acquisition
+still in progress; restoring it never starts a hold. The pending/active cup stays
+accessible until release completes, and worker failures use the existing warning
+path. The power library releases by dropping its guard, with no fallible release
+API; OS release errors it does not expose cannot be detected by the client.
+It is app-wide, so every window shows the same cup. macOS holds power
 assertions (`pmset -g assertions` lists them), Windows sets the execution
 state (`powercfg /requests`), and Linux asks the session's
 `org.freedesktop.ScreenSaver` and logind (`systemd-inhibit --list`). Quitting
@@ -4711,7 +4735,53 @@ bar, then back to the terminal; **Shift+F6** (Focus Previous Region) goes the
 other way. Inside a region, Tab and Shift+Tab move between its controls and
 wrap, the arrows also move in the sidebar, Enter or Space uses the control, and
 Escape returns to the terminal. The focused control has an accent ring.
-**F10** opens the menu bar. Both region commands can be rebound in Keyboard
+On Linux and Windows, **Settings > General > Show menu bar** saves one
+application-wide choice for all main windows (`show_menu_bar = true` by default).
+**Ctrl+Shift+M** toggles it; rebind `toggle_menu_bar` in Keyboard Shortcuts.
+**F10** opens the menu even when hidden, as a top overlay without moving the
+content. Windows also accepts **Alt alone**, leaving Alt chords and AltGr alone.
+Escape or F10 dismisses the menu and restores prior focus. Client-decorated
+windows keep their window buttons in the header/tab row when the menu is hidden,
+and in the draggable band in zen mode. The existing Linux **Show window controls**
+setting also keeps these controls and dragging available with server decorations
+when the menu is hidden. It defaults to `true` and can duplicate compositor
+buttons; set `show_window_controls = false` when the server titlebar already
+provides them. Client-decorated windows keep their controls regardless of this
+setting. When the hidden-menu window needs these controls, it retains the
+full-width header even with top tabs and at wide widths, so narrow split groups
+cannot push the buttons offscreen. Long Git badges may clip before the account
+and window buttons. Zen mode retains its draggable control band. macOS keeps
+its native system menu.
+
+#### Wayland decoration requests
+
+On Wayland, **Settings > General > Request client-side decorations** opts newly
+opened **main windows** into a client-decoration request. It is off by default
+(`request_client_side_decorations = false`); reopen the window after changing it.
+The compositor can decline, and the frame and controls follow GPUI's observed
+decorations, not the saved request. Settings, Logs and other secondary windows,
+X11, Windows and macOS keep their existing behavior. The custom header, menu
+bar and zen band reuse the backdrop opacity; shadows and resize handles remain
+outside the content and respect tiled edges.
+
+**Translucent** and **Blur behind** remain independent. When GPUI reports a
+processed server-decoration fallback for this window's initial client request,
+a dismissible **Window appearance** notice explains it. Unsupported blur is
+reported only while the effective background actually requests blur, not for
+opaque windows, pictures, or translucency alone. Pending and unreported platform
+statuses produce no warning. Capability changes and appearance changes refresh
+the notice; resolving a limitation clears it. Dismissal holds until its text
+changes or the limitation clears and returns.
+
+`status` and `window list` also report current `appearance_limitations` per
+window, including dismissed notices. An advertised usable blur request path is
+**not** confirmation of blurred pixels. The pinned GPUI platform backport requests
+ext-background-effect-v1 blur when advertised, with legacy KDE fallback. Its
+immutable revision and Nix checkout hash are documented in the
+[root README](../../README.md#from-source). Native compositor QA and full
+section-3 acceptance remain outstanding.
+
+Both region commands can be rebound in Keyboard
 Shortcuts (Cmd+F6 and Cmd+Shift+F6 on macOS). A region's controls are tab
 stops only while it holds the keyboard, so clicking a chrome button never pulls
 typing away from the terminal.

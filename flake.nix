@@ -66,7 +66,11 @@
               ./scripts/release/so.pen.herdr-gpui.desktop
             ];
           };
-          cargoLock.lockFile = ./Cargo.lock;
+          cargoLock = {
+            lockFile = ./Cargo.lock;
+            # Both patched packages share this Git checkout; one hash covers it.
+            outputHashes."gpui-pre-0.3.6" = "sha256-s6zLgvhRJHDGIuoxbB4giMQ1a8g9mxi4p0SqTgjKakM=";
+          };
           # The app starts chats with the herdr-acp beside its executable,
           # runs the herdr-remote-control beside it as a user service, and
           # runs automations in the herdr-automate there.

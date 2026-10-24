@@ -49,6 +49,7 @@ mod sound_volume;
 mod status_bar;
 mod status_bar_awake_scope;
 mod status_bar_gpu;
+mod status_bar_visibility;
 mod status_icons;
 mod system_themes;
 mod tab_layout;
@@ -85,3 +86,7 @@ impl Drop for TempDirectory {
         let _ = fs::remove_dir_all(&self.0);
     }
 }
+
+mod menu_bar_visibility;
+
+mod wayland_decorations;

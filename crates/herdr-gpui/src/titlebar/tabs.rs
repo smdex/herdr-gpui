@@ -47,8 +47,17 @@ impl HerdrWindow {
     /// Whether the tab row stands in for the header: Herdr puts the tab bar
     /// at the top and the leftmost group shows its strip. Otherwise the
     /// window keeps the full-width header.
-    pub(crate) fn tabs_in_titlebar(&self, first: GroupId, cx: &App) -> bool {
-        self.tab_bar_position() == TabBarPosition::Top && !self.strip_hidden(first, cx)
+    pub(crate) fn tabs_in_titlebar(&self, first: GroupId, window: &Window, cx: &App) -> bool {
+        // ponytail: keep hidden-menu controls in a header; measure strip occupants before merging.
+        let needs_header = crate::menus::IN_WINDOW
+            && !self.application_bar_visible()
+            && super::show_controls(
+                self.config.show_window_controls,
+                window.window_decorations(),
+            );
+        !needs_header
+            && self.tab_bar_position() == TabBarPosition::Top
+            && !self.strip_hidden(first, cx)
     }
 
     /// Keep the toggle anchored in the sidebar whenever it fits. The rail has

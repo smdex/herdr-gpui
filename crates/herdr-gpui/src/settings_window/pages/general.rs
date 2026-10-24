@@ -87,13 +87,39 @@ impl SettingsWindow {
                 page.child(
                     ui::row(theme, "general-window-controls", "Show window controls")
                         .description(
-                            "Draw minimize, maximize, and close buttons in the menu bar. Disable \
-                             server-side decorations in your window manager to avoid a double bar.",
+                            "Keep window buttons in the menu bar or header, even with server decorations. \
+                             Turn off to avoid duplicate compositor buttons.",
                         )
                         .switch(self.preference_toggle(
                             "general-window-controls-toggle",
                             self.config.show_window_controls,
                             Preference::ShowWindowControls(!self.config.show_window_controls),
+                            cx,
+                        )),
+                )
+            })
+            .when(crate::menus::IN_WINDOW, |page| {
+                page.child(
+                    ui::row(theme, "general-menu-bar", "Show menu bar")
+                        .description("Main windows. F10 opens the menu temporarily when hidden.")
+                        .switch(self.preference_toggle(
+                            "general-menu-bar-toggle",
+                            self.config.show_menu_bar,
+                            Preference::ShowMenuBar(!self.config.show_menu_bar),
+                            cx,
+                        )),
+                )
+            })
+            .when(cx.compositor_name() == "Wayland", |page| {
+                page.child(
+                    ui::row(theme, "general-client-decorations", "Request client-side decorations")
+                        .description(
+                            "Wayland main windows only. Reopen the window to apply. The compositor may decline; a confirmed fallback appears in Window appearance.",
+                        )
+                        .switch(self.preference_toggle(
+                            "general-client-decorations-toggle",
+                            self.config.request_client_side_decorations,
+                            Preference::RequestClientSideDecorations(!self.config.request_client_side_decorations),
                             cx,
                         )),
                 )

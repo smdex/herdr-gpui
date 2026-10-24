@@ -48,6 +48,7 @@ pub enum Command {
     /// Reopens the focused workspace's most recently closed tab.
     ReopenClosedTab,
     TabNumber(u8),
+    ToggleMenuBar,
     ToggleSidebar,
     ToggleStatusBar,
     /// Moves keyboard focus to the next of the terminal, the title bar, the
@@ -540,6 +541,11 @@ pub const COMMANDS: &[CommandInfo] = &[
         label: "Focus Agent 9",
     },
     CommandInfo {
+        command: Command::ToggleMenuBar,
+        name: "toggle_menu_bar",
+        label: "Toggle Menu Bar",
+    },
+    CommandInfo {
         command: Command::ToggleSidebar,
         name: "toggle_sidebar",
         label: "Toggle Sidebar",
@@ -866,6 +872,7 @@ pub fn request(command: Command, snapshot: &ClientShellSnapshot) -> Option<(Meth
         | Command::FindPrevious
         | Command::CopyMode
         | Command::AnnotateSelection
+        | Command::ToggleMenuBar
         | Command::ToggleSidebar
         | Command::ToggleStatusBar
         | Command::FocusNextRegion

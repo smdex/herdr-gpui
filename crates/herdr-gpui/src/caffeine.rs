@@ -74,6 +74,8 @@ struct Request {
     reply: SyncSender<keepawake::Result<()>>,
 }
 
+type Report = Box<dyn FnOnce(crate::Error, &mut App)>;
+
 #[derive(Default)]
 struct Caffeine {
     cup: Cup,
@@ -87,6 +89,8 @@ struct Caffeine {
     changes: u64,
     /// Dropping it ends the worker, which releases any hold on its own thread.
     worker: Option<SyncSender<Request>>,
+    /// A hide during acquisition must release even if the cup is shown again.
+    release_after_hold: Option<Report>,
     /// Windows whose agents were last seen working.
     working: HashSet<WindowId>,
 }
@@ -102,6 +106,22 @@ pub(crate) fn cup(cx: &App) -> Cup {
 /// reloads, so a click right after a Settings change uses the new scope.
 pub(crate) fn set_scope(scope: AwakeScope, cx: &mut App) {
     cx.default_global::<Caffeine>().scope = scope;
+}
+
+/// Hiding the control releases its hold; showing it never starts one.
+pub(crate) fn set_visible(
+    shown: bool,
+    cx: &mut App,
+    report: impl FnOnce(crate::Error, &mut App) + 'static,
+) {
+    if shown {
+        return;
+    }
+    match cup(cx) {
+        Cup::Off => {}
+        Cup::Pending => cx.default_global::<Caffeine>().release_after_hold = Some(Box::new(report)),
+        Cup::On(_) => release(cx, report),
+    }
 }
 
 /// What the cup keeps awake now: the active hold's scope, or what the next
@@ -124,7 +144,11 @@ pub(crate) fn changes(cx: &App) -> u64 {
 pub(crate) fn install(cx: &mut App) {
     if let Some(appearance) = cx.try_global::<crate::app::InitialAppearance>() {
         let scope = appearance.config.status_bar.keep_awake_scope;
+        let shown = appearance.config.status_bar.keep_awake;
         set_scope(scope, cx);
+        set_visible(shown, cx, |error, _| {
+            tracing::warn!(category = "caffeine", %error, "could not release the keep-awake hold");
+        });
     }
     cx.on_window_closed(|cx, _| {
         let open = cx.windows();
@@ -320,7 +344,15 @@ fn finish(
     if matches!(result, Err(crate::Error::Caffeine(Error::WorkerStopped))) {
         caffeine.worker = None;
     }
+    let release_after_hold = caffeine.release_after_hold.take();
     cx.refresh_windows();
+    if matches!(change, Change::Hold(_))
+        && result.is_ok()
+        && let Some(report) = release_after_hold
+    {
+        release(cx, report);
+        return;
+    }
     match result {
         Err(error) => report(error, cx),
         // The agents may have finished while the hold was being made.
