@@ -224,7 +224,19 @@ nix run github:penso/herdr-gpui
 ```
 
 The flake builds with the toolchain pinned in `rust-toolchain.toml` on x86_64 and
-ARM64 Linux. Like the packages, it never updates itself.
+ARM64 Linux. Like the packages, it never updates itself. The default and
+`herdr-gpui` packages bundle `herdr-acp`, `herdr-remote-control`, and
+`herdr-automate` beside the app. Each companion is also a separate installable
+flake package and overlay attribute, for example:
+
+```sh
+nix build github:penso/herdr-gpui#herdr-acp
+nix run github:penso/herdr-gpui#herdr-automate -- --help
+```
+
+These outputs share one build but do not depend on the GUI at runtime.
+`herdr-remote-control` also carries access to `herdr-acp`, which it needs to
+start chats. The overlay (`overlays.default`) exposes the same four names.
 
 ### Windows installers
 
