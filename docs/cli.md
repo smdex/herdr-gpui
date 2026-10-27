@@ -463,11 +463,42 @@ download first is left out.
 
 Files dropped on a remote chat are copied to the host first, into private
 temporary files under its `${TMPDIR:-/tmp}`, and the copies are attached.
+### Existing agent rendering
 
-+
-+Set `chat.render_existing = true` along with `features.acp_chats = true` to
-+render existing Linux Codex/Claude conversations automatically. The original
-+terminal input remains interactive in the same pane. `chat status --json`
-+reports `input_mode` (`chat`, `terminal`, or `read_only`) and `session_id`;
-+`blocked` status means the running agent needs input. `chat show/hide/toggle`
-+still switches the pane presentation, without starting or stopping its agent.
+Set `chat.render_existing = true` along with `features.acp_chats = true` to
+render existing Linux Codex/Claude conversations automatically. The original
+terminal input remains interactive in the same pane. `chat status --json`
+reports `input_mode` (`chat`, `terminal`, or `read_only`) and `session_id`;
+`blocked` status means the running agent needs input. `chat show/hide/toggle`
+still switches the pane presentation, without starting or stopping its agent.
+
+On Linux/Windows, `herdr-gpui config set show_menu_bar false` hides the main
+window menu row in all open windows and after restart. `config get show_menu_bar`
+reads the effective value; `config unset show_menu_bar` restores the default
+(visible). F10 still opens the menu without moving the content; Windows also
+accepts Alt alone. macOS keeps its native system menu.
+
+On Wayland, `herdr-gpui config set request_client_side_decorations true`
+asks for client-side decorations when a main window is next opened. The default
+is `false`; `config get request_client_side_decorations` reads the saved/effective
+preference, **not** negotiated support, and `config unset request_client_side_decorations`
+restores the default. Reopen the window to apply it. Secondary windows and other
+backends are unaffected. The compositor may decline; the pinned GPUI platform backport reports processed
+decoration fallback and advertised blur support, and requests ext-background-effect-v1
+blur with legacy KDE fallback. These reports do not confirm visible blur; native
+compositor QA remains outstanding. See the
+[GUI README](../crates/herdr-gpui/README.md#wayland-decoration-requests).
+
+On Linux, `show_window_controls` remains effective when the menu is hidden,
+including with server decorations. Its default is `true`; use
+`herdr-gpui config set show_window_controls false` to avoid duplicating compositor
+buttons. Client-decorated windows retain their controls regardless.
+
+### Window appearance limitations
+
+`status` and `window list` include each window's current `appearance_limitations`
+(array of display strings in JSON, `appearance:` lines in text). These remain
+available when the in-app notice is dismissed. Only processed client-decoration
+refusal and explicitly unsupported, actually requested blur are reported;
+pending/unreported status is silent. An empty list does not confirm visual blur.
+Older payloads without this field decode as an empty list.
