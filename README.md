@@ -261,11 +261,20 @@ nix run github:sheprd-labs/sheprd
 ```
 
 The flake builds with the toolchain pinned in `rust-toolchain.toml` on x86_64 and
-ARM64 Linux, and Apple Silicon macOS (14.2 or newer). On macOS, `nix build`
-also creates `result/Applications/Sheprd.app`, including the pinned herdr-core
-and the native Bluetooth helper; launch it with `open result/Applications/Sheprd.app`.
-Linux users supply their own Herdr or herdr-core daemon. Nix builds never update
-themselves; upgrade through Nix.
+ARM64 Linux. Like the packages, it never updates itself. The default and
+`sheprd` packages bundle `sheprd-acp`, `sheprd-remote-control`, and
+`sheprd-automate` beside the app. The old `herdr-*` names remain compatibility
+aliases. Each companion is also a separate installable
+flake package and overlay attribute, for example:
+
+```sh
+nix build github:smdex/herdr-gpui#sheprd-acp
+nix run github:smdex/herdr-gpui#sheprd-automate -- --help
+```
+
+These outputs share one build but do not depend on the GUI at runtime.
+`sheprd-remote-control` also carries access to `sheprd-acp`, which it needs to
+start chats. The overlay (`overlays.default`) exposes the same package names.
 
 ### Windows installers
 
@@ -312,31 +321,17 @@ pins Rust 1.99.0 and GPUI 0.3.10 (the `gpui-pre` snapshot crate); the Rust versi
 is declared in `rust-toolchain.toml` and mirrored in `mise.toml`, so `mise install`
 also provisions it.
 
-The root `[patch.crates-io]` overrides **both** `gpui-pre` and `gpui-pre-linux`
-with the reviewed [platform backport](https://github.com/smdex/herdr-gpui-platform-backport/tree/d4c5aa52664dfb5e75789101e50a67d0aa187bc8),
-pinned to commit `d4c5aa52664dfb5e75789101e50a67d0aa187bc8`. The `=0.3.6`
-requirements stay unchanged; all other GPUI snapshot packages remain registry
-0.3.6, and the existing local `embed-resource` patch remains in effect.
-This is not an official Zed release: it preserves the published crates' Zed
-snapshot `bcf6582ce3500df93a8a39366640173e6786cea6`, attribution, and licenses.
-See the pinned [backport notes](https://github.com/smdex/herdr-gpui-platform-backport/blob/d4c5aa52664dfb5e75789101e50a67d0aa187bc8/BACKPORT.md)
-for archive checksums and the decoration, callback, and blur contracts.
+GPUI uses the registry versions pinned by upstream and `Cargo.lock`. The older
+0.3.6 platform backport is not compatible with this snapshot and is no longer
+patched into the build. The local `embed-resource` patch remains in effect.
+Check `cargo metadata --locked` and `cargo tree --locked -i gpui-pre` before
+changing the dependency graph.
 
-`Cargo.lock` records the Git source; `flake.nix` records its fetched checkout
-hash, `sha256-s6zLgvhRJHDGIuoxbB4giMQ1a8g9mxi4p0SqTgjKakM=`, under
-`cargoLock.outputHashes."gpui-pre-0.3.6"`. Nix shares that checkout hash with
-`gpui-pre-linux`; a second hash entry is unnecessary. To update the backport,
-change both revisions together, narrowly update those two lockfile packages,
-then re-fetch and verify the Nix hash. Check `cargo metadata --locked` and
-`cargo tree --locked -i gpui-pre` for one core identity before building.
-
-Backport tests do not prove native compositor/GPU behavior, Vulkan WSI ordering,
-scale/tiling, or visible blur. Blur support describes an advertised request
-path, not confirmed pixels; unreported platform queries return `None`.
-The published core archive lacks font assets for its full unit suite, and the
-backport's original all-features check lacked `x11.pc`. Native Linux visual QA
-and macOS/Windows validation of this pinned backport remain separate requirements;
-existing platform CI descriptions below are not evidence for this new revision.
+Decoration and blur requests remain available, but GPUI 0.3.10 does not expose
+the processed decoration-negotiation or blur-support probes used by the older
+backport. The app does not infer compositor refusal or visible blur from a
+request. Native compositor/GPU, scale/tiling, and macOS/Windows visual QA remain
+separate requirements.
 
 ```sh
 git clone https://github.com/sheprd-labs/sheprd.git
@@ -498,9 +493,6 @@ surfaces it is sent, and sends semantic input back. For herdr-core, it uses
 native cell presentation. Each daemon owns its terminal processes; the app
 keeps its own views and preferences. Closing or detaching the GUI leaves the
 daemons and their terminals running. Existing Herdr 1 sessions stay on Herdr 1.
-
-See the [Herdr 2 acceptance matrix](docs/herdr2-acceptance.md) for the audited
-feature scope, remaining gaps, implementation owners, and pending runtime QA.
 
 ### macOS Git permission errors
 
