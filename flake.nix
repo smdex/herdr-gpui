@@ -39,7 +39,7 @@
       package =
         pkgs:
         let
-          toolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
+          toolchain = (pkgs.extend rust-overlay.overlays.default).rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
           rustPlatform = pkgs.makeRustPlatform {
             cargo = toolchain;
             rustc = toolchain;
@@ -66,6 +66,12 @@
               ./scripts/release/so.pen.herdr-gpui.desktop
             ];
           };
+          outputs = [
+            "out"
+            "acp"
+            "remoteControl"
+            "automate"
+          ];
           cargoLock = {
             lockFile = ./Cargo.lock;
             # Both patched packages share this Git checkout; one hash covers it.
@@ -111,6 +117,12 @@
           # No updater key is embedded, so this build never replaces itself;
           # Nix owns the store path and upgrades come from the flake.
           postInstall = ''
+            # Real copies keep current_exe beside the bundle's companions.
+            install -Dm755 $out/bin/herdr-acp $acp/bin/herdr-acp
+            install -Dm755 $out/bin/herdr-remote-control $remoteControl/bin/herdr-remote-control
+            install -Dm755 $out/bin/herdr-automate $automate/bin/herdr-automate
+            # The remote daemon discovers ACP beside its own real executable.
+            ln -s $acp/bin/herdr-acp $remoteControl/bin/herdr-acp
             install -Dm644 scripts/release/so.pen.herdr-gpui.desktop \
               $out/share/applications/so.pen.herdr-gpui.desktop
             install -Dm644 assets/icons/sheprd-linux.svg \
@@ -126,6 +138,42 @@
               ln -s "sheprd-$helper" "$out/bin/herdr-$helper"
             done
           '';
+          # Every build runs each shipped program's safe CLI and checks ldd,
+          # as the release smoke test does, so a package missing a companion
+          # or linking outside the store fails to build. Each check prints and
+          # exits before any UI, socket, or daemon starts; a wrapper that
+          # still runs the real program passes too.
+          doInstallCheck = true;
+          installCheckPhase = ''
+            runHook preInstallCheck
+            for program in herdr-gpui herdr-acp herdr-remote-control herdr-automate; do
+              test -x "$out/bin/$program"
+              # Capture before matching: with pipefail, grep -q exiting early
+              # would fail the writer with SIGPIPE (as the release smoke notes).
+              linked=$(ldd "$out/bin/$program" 2>/dev/null || true)
+              if grep "not found" <<<"$linked"; then
+                echo "$program has libraries the output does not carry" >&2
+                exit 1
+              fi
+            done
+            $out/bin/herdr-gpui --help >/dev/null
+            $out/bin/herdr-acp --help >/dev/null
+            $out/bin/herdr-remote-control --version >/dev/null
+            $out/bin/herdr-automate --version >/dev/null
+            $acp/bin/herdr-acp --help >/dev/null
+            $remoteControl/bin/herdr-remote-control --version >/dev/null
+            $remoteControl/bin/herdr-acp --help >/dev/null
+            $automate/bin/herdr-automate --version >/dev/null
+            for standalone in "$acp" "$remoteControl" "$automate"; do
+              test ! -e "$standalone/bin/herdr-gpui"
+              # A split output must not retain the bundle through ELF RPATHs.
+              if grep -r -a -l -F "$out" "$standalone"; then
+                echo "standalone output references the GUI bundle" >&2
+                exit 1
+              fi
+            done
+            runHook postInstallCheck
+          '';
           meta = {
             description = "Native GPUI client for an existing local Herdr daemon";
             homepage = "https://sheprd.org";
@@ -134,16 +182,36 @@
             platforms = systems;
           };
         };
+      packagesFor =
+        pkgs:
+        let
+          bundle = package pkgs;
+          companion =
+            output: program:
+            output
+            // {
+              meta = bundle.meta // {
+                description = "Herdr companion: ${program}";
+                mainProgram = program;
+                outputsToInstall = [ output.outputName ];
+              };
+            };
+        in
+        {
+          herdr-acp = companion bundle.acp "herdr-acp";
+          herdr-automate = companion bundle.automate "herdr-automate";
+          herdr-gpui = bundle;
+          herdr-remote-control = companion bundle.remoteControl "herdr-remote-control";
+        };
     in
     {
-      packages = forAllSystems (pkgs: {
-        default = package pkgs;
-        sheprd = package pkgs;
-        herdr-gpui = package pkgs;
-      });
-      overlays.default = final: _prev: {
-        sheprd = self.packages.${final.stdenv.hostPlatform.system}.default;
-        herdr-gpui = self.packages.${final.stdenv.hostPlatform.system}.default;
-      };
+      packages = forAllSystems (
+        pkgs:
+        let
+          packages = packagesFor pkgs;
+        in
+        packages // { default = packages.herdr-gpui; sheprd = packages.herdr-gpui; }
+      );
+      overlays.default = final: _prev: (packagesFor final) // { sheprd = (packagesFor final).herdr-gpui; };
     };
 }
