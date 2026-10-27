@@ -70,6 +70,36 @@ fn a_file_that_cannot_run_is_not_the_program() {
     assert_eq!(locate_in(Some(&dir.path().join("Herdr")), None), None);
 }
 
+/// An installed package, exercised only when a build points
+/// `HERDR_PACKAGED_BIN` at its bin directory: the production locator must
+/// discover every shipped companion beside the packaged app with nothing on
+/// `PATH`, proving packaged sibling discovery against the real layout
+/// instead of file presence alone.
+#[test]
+fn a_packaged_install_discovers_every_companion_beside_the_app() {
+    let Ok(bin) = std::env::var("HERDR_PACKAGED_BIN") else {
+        return; // Only meaningful against an installed package.
+    };
+    let bin = Path::new(&bin);
+    let exe = bin.join(format!("herdr-gpui{}", std::env::consts::EXE_SUFFIX));
+    assert!(exe.is_file(), "no packaged app at {}", exe.display());
+    let same_file = |found: &Path, beside: &Path| {
+        std::fs::canonicalize(found)
+            .unwrap_or_else(|_| found.to_path_buf())
+            == std::fs::canonicalize(beside)
+                .unwrap_or_else(|_| beside.to_path_buf())
+    };
+    for companion in ["herdr-acp", "herdr-remote-control", "herdr-automate"] {
+        let name = format!("{companion}{}", std::env::consts::EXE_SUFFIX);
+        let beside = bin.join(&name);
+        let found = crate::bundled::locate_in(&name, Some(&exe), None);
+        assert!(
+            found.as_deref().is_some_and(|found| same_file(found, &beside)),
+            "{companion} is not discovered beside the packaged app: {found:?}"
+        );
+    }
+}
+
 #[test]
 fn the_typed_line_names_only_the_agent() {
     for agent in Agent::ALL {
