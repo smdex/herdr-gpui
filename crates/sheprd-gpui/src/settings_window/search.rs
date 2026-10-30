@@ -51,6 +51,7 @@ impl SettingsWindow {
                 ThemeName::follows_system(self.drafted_theme())
             }
             catalog::Availability::Windows => cfg!(windows),
+            // i18n: data
             catalog::Availability::Wayland => cx.compositor_name() == "Wayland",
         }
     }
