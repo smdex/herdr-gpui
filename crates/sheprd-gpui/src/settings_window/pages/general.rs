@@ -2,12 +2,19 @@
 //! feedback, merged worktrees, the browser skill, launch at login (Windows)
 //! and the update channel.
 // i18n: migrated
-use super::{CLIPBOARD_POSITIONS, SettingsWindow, on_off, on_value, ui};
+use super::{
+    CLIPBOARD_POSITIONS, SettingsWindow, on_off, on_off_choices, on_value, position_name,
+    position_names, ui,
+};
 use crate::settings_window::inputs::{DropdownField, NumberField};
 use crate::{
     agent_skill::{AgentSkill, Choice},
-    config::{ClipboardToast, Feature, UpdateChannel, preferences::Preference},
+    config::{
+        ChatLauncher, ChatLayoutMode, ClipboardToast, Feature, UpdateChannel,
+        preferences::Preference,
+    },
     herdr_settings::Edit,
+    i18n::{self, fl},
 };
 use gpui::{prelude::*, *};
 
@@ -30,20 +37,21 @@ impl SettingsWindow {
         let position = overrides
             .position()
             .and_then(|p| CLIPBOARD_POSITIONS.iter().position(|(c, _)| *c == p));
-        let position_names = CLIPBOARD_POSITIONS.map(|(_, name)| name);
-        let base_position = CLIPBOARD_POSITIONS
-            .iter()
-            .find_map(|(p, name)| (*p == base.1).then_some(*name))
-            .unwrap_or_default();
+        let position_names = position_names(&CLIPBOARD_POSITIONS);
+        let base_position = position_name(&CLIPBOARD_POSITIONS, &base.1);
         let merged = self.config.remove_merged_worktrees;
         let beta = self.config.updates.channel == UpdateChannel::Beta;
         let installed = AgentSkill::choice(cx) == Some(Choice::Installed);
         let (skill_id, skill_label, choice) = if installed {
-            ("general-browser-skill-remove", "Remove", Choice::Declined)
+            (
+                "general-browser-skill-remove",
+                fl!("settings-general-browser-skill-remove"),
+                Choice::Declined,
+            )
         } else {
             (
                 "general-browser-skill-install",
-                "Install",
+                fl!("settings-general-browser-skill-install"),
                 Choice::Installed,
             )
         };
@@ -57,8 +65,8 @@ impl SettingsWindow {
             ))
             .child(self.language_row(cx))
             .child(
-                ui::row(theme, "general-ports", "Show listening ports")
-                    .description("Port chips on workspaces with a dev server.")
+                ui::row(theme, "general-ports", fl!("settings-general-ports"))
+                    .description(fl!("settings-general-ports-description"))
                     .switch(self.preference_toggle(
                         "general-ports-toggle",
                         self.config.show_listening_ports,
@@ -67,24 +75,32 @@ impl SettingsWindow {
                     )),
             )
             .child(
-                ui::row(theme, "general-checkpoints", "Checkpoint agent turns")
-                    .description("Snapshot the worktree after each agent turn.")
-                    .switch(self.preference_toggle(
-                        "general-checkpoints-toggle",
-                        self.config.agent_checkpoints,
-                        Preference::AgentCheckpoints(!self.config.agent_checkpoints),
-                        cx,
-                    )),
+                ui::row(
+                    theme,
+                    "general-checkpoints",
+                    fl!("settings-general-checkpoints"),
+                )
+                .description(fl!("settings-general-checkpoints-description"))
+                .switch(self.preference_toggle(
+                    "general-checkpoints-toggle",
+                    self.config.agent_checkpoints,
+                    Preference::AgentCheckpoints(!self.config.agent_checkpoints),
+                    cx,
+                )),
             )
             .child(
-                ui::row(theme, "general-smooth-scroll", "Smooth scrolling")
-                    .description("Scroll terminal history between rows; off steps whole rows.")
-                    .switch(self.preference_toggle(
-                        "general-smooth-scroll-toggle",
-                        self.config.smooth_scroll,
-                        Preference::SmoothScroll(!self.config.smooth_scroll),
-                        cx,
-                    )),
+                ui::row(
+                    theme,
+                    "general-smooth-scroll",
+                    fl!("settings-general-smooth-scroll"),
+                )
+                .description(fl!("settings-general-smooth-scroll-description"))
+                .switch(self.preference_toggle(
+                    "general-smooth-scroll-toggle",
+                    self.config.smooth_scroll,
+                    Preference::SmoothScroll(!self.config.smooth_scroll),
+                    cx,
+                )),
             )
             .when(crate::menus::IN_WINDOW, |page| {
                 page.child(
@@ -100,23 +116,24 @@ impl SettingsWindow {
             })
             .when(cfg!(target_os = "linux"), |page| {
                 page.child(
-                    ui::row(theme, "general-window-controls", "Show window controls")
-                        .description(
-                            "Keep window buttons in the menu bar or header, even with server decorations. \
-                             Turn off to avoid duplicate compositor buttons.",
-                        )
-                        .switch(self.preference_toggle(
-                            "general-window-controls-toggle",
-                            self.config.show_window_controls,
-                            Preference::ShowWindowControls(!self.config.show_window_controls),
-                            cx,
-                        )),
+                    ui::row(
+                        theme,
+                        "general-window-controls",
+                        fl!("settings-general-window-controls"),
+                    )
+                    .description(fl!("settings-general-window-controls-description"))
+                    .switch(self.preference_toggle(
+                        "general-window-controls-toggle",
+                        self.config.show_window_controls,
+                        Preference::ShowWindowControls(!self.config.show_window_controls),
+                        cx,
+                    )),
                 )
             })
             .when(crate::menus::IN_WINDOW, |page| {
                 page.child(
-                    ui::row(theme, "general-menu-bar", "Show menu bar")
-                        .description("Main windows. F10 opens the menu temporarily when hidden.")
+                    ui::row(theme, "general-menu-bar", fl!("fork-chrome-menu-bar"))
+                        .description(fl!("fork-chrome-menu-bar-description"))
                         .switch(self.preference_toggle(
                             "general-menu-bar-toggle",
                             self.config.show_menu_bar,
@@ -125,29 +142,110 @@ impl SettingsWindow {
                         )),
                 )
             })
+            // i18n: data
             .when(cx.compositor_name() == "Wayland", |page| {
                 page.child(
-                    ui::row(theme, "general-client-decorations", "Request client-side decorations")
-                        .description(
-                            "Wayland main windows only. Reopen the window to apply. The compositor may decline; a confirmed fallback appears in Window appearance.",
-                        )
-                        .switch(self.preference_toggle(
-                            "general-client-decorations-toggle",
-                            self.config.request_client_side_decorations,
-                            Preference::RequestClientSideDecorations(!self.config.request_client_side_decorations),
-                            cx,
-                        )),
+                    ui::row(
+                        theme,
+                        "general-client-decorations",
+                        fl!("fork-chrome-client-decorations"),
+                    )
+                    .description(fl!("fork-chrome-client-decorations-description"))
+                    .switch(self.preference_toggle(
+                        "general-client-decorations-toggle",
+                        self.config.request_client_side_decorations,
+                        Preference::RequestClientSideDecorations(
+                            !self.config.request_client_side_decorations,
+                        ),
+                        cx,
+                    )),
                 )
             })
-            .child(ui::section(theme, "Features", None))
+            .child(ui::section(
+                theme,
+                &fl!("settings-general-section-features"),
+                None,
+            ))
             .children(self.feature_rows(cx))
+            .children(self.config.features.acp_chats.then(|| {
+                let layouts: Vec<_> = ChatLayoutMode::ALL
+                    .iter()
+                    .map(|&mode| (mode, mode.label()))
+                    .collect();
+                ui::row(
+                    theme,
+                    "general-chat-layout",
+                    fl!("settings-general-chat-layout"),
+                )
+                .description(fl!("settings-general-chat-layout-description"))
+                .control(ui::segmented(
+                    theme,
+                    "general-chat-layout-control",
+                    &layouts,
+                    Some(self.config.chat.layout),
+                    !self.quitting && self.closing.is_none(),
+                    on_value(cx, |this, mode, _, cx| {
+                        this.save_preference(Preference::ChatLayout(mode), cx)
+                    }),
+                ))
+            }))
+            .children(
+                self.config
+                    .features
+                    .acp_chats
+                    .then(|| self.chat_width_controls(cx)),
+            )
+            .children(self.config.features.acp_chats.then(|| {
+                let launchers: Vec<_> = ChatLauncher::ALL
+                    .iter()
+                    .map(|&launcher| (launcher, launcher.label()))
+                    .collect();
+                ui::row(
+                    theme,
+                    "general-chat-launcher",
+                    fl!("settings-general-chat-launcher"),
+                )
+                .description(fl!("settings-general-chat-launcher-description"))
+                .control(ui::segmented(
+                    theme,
+                    "general-chat-launcher-control",
+                    &launchers,
+                    Some(self.config.chat.launcher),
+                    !self.quitting && self.closing.is_none(),
+                    on_value(cx, |this, launcher, _, cx| {
+                        this.save_preference(Preference::ChatLauncher(launcher), cx)
+                    }),
+                ))
+            }))
+            .children(self.config.features.acp_chats.then(|| {
+                ui::row(
+                    theme,
+                    "general-chat-glide",
+                    fl!("settings-general-chat-glide"),
+                )
+                .description(fl!("settings-general-chat-glide-description"))
+                .switch(self.preference_toggle(
+                    "general-chat-glide-toggle",
+                    self.config.chat.glide,
+                    Preference::ChatGlide(!self.config.chat.glide),
+                    cx,
+                ))
+            }))
             .children(self.render_chat_env_controls(cx))
-            .child(ui::section(theme, "Clipboard", None))
+            .child(ui::section(
+                theme,
+                &fl!("settings-general-section-clipboard"),
+                None,
+            ))
             .child(
                 self.gate_shared(
-                    ui::row(theme, "general-copy-on-select", "Copy on select")
-                        .tag(ui::Source::Herdr)
-                        .description("Off: \u{2318}C / Ctrl-C copies the highlighted selection."),
+                    ui::row(
+                        theme,
+                        "general-copy-on-select",
+                        fl!("settings-general-copy-on-select"),
+                    )
+                    .tag(ui::Source::Herdr)
+                    .description(fl!("settings-general-copy-on-select-description")),
                 )
                 .switch(
                     ui::toggle(theme, "general-copy-on-select-toggle", copy, ready).when(
@@ -190,17 +288,18 @@ impl SettingsWindow {
                     cx,
                 )),
             )
-            .child(ui::section(theme, "Worktrees", None))
+            .child(ui::section(
+                theme,
+                &fl!("settings-general-section-worktrees"),
+                None,
+            ))
             .child(
                 ui::row(
                     theme,
                     "general-merged-worktrees",
-                    "Remove worktrees of merged PRs",
+                    fl!("settings-general-merged-worktrees"),
                 )
-                .description(
-                    "Deletes a clean linked worktree and closes its workspace once its PR is \
-                     merged. The focused workspace asks first.",
-                )
+                .description(fl!("settings-general-merged-worktrees-description"))
                 .switch(self.preference_toggle(
                     "general-merged-worktrees-toggle",
                     merged,
@@ -208,17 +307,21 @@ impl SettingsWindow {
                     cx,
                 )),
             )
-            .child(ui::section(theme, "Browser skill", None))
+            .child(ui::section(
+                theme,
+                &fl!("settings-general-section-browser-skill"),
+                None,
+            ))
             .child(
                 ui::row(
                     theme,
                     "general-browser-skill",
-                    "Teach local agents to use browser tabs",
+                    fl!("settings-general-browser-skill"),
                 )
                 .description(if installed {
-                    "Installed in ~/.claude and ~/.agents, kept up to date."
+                    fl!("settings-general-browser-skill-description")
                 } else {
-                    "Not installed."
+                    fl!("settings-general-browser-skill-missing")
                 })
                 .control(
                     ui::button(theme, skill_id, skill_label, true)
@@ -226,23 +329,28 @@ impl SettingsWindow {
                 ),
             )
             .children(self.startup_rows(cx))
-            .child(ui::section(theme, "Updates", None))
+            .child(ui::section(
+                theme,
+                &fl!("settings-general-section-updates"),
+                None,
+            ))
             .child(
-                ui::row(theme, "general-update-beta", "Install beta releases")
-                    .description(
-                        "Betas ship before they are promoted to stable. Turning this off never \
-                         downgrades; Homebrew installations update in place while it is on.",
-                    )
-                    .switch(self.preference_toggle(
-                        "general-update-beta-toggle",
-                        beta,
-                        Preference::UpdateChannel(if beta {
-                            UpdateChannel::Stable
-                        } else {
-                            UpdateChannel::Beta
-                        }),
-                        cx,
-                    )),
+                ui::row(
+                    theme,
+                    "general-update-beta",
+                    fl!("settings-general-update-beta"),
+                )
+                .description(fl!("settings-general-update-beta-description"))
+                .switch(self.preference_toggle(
+                    "general-update-beta-toggle",
+                    beta,
+                    Preference::UpdateChannel(if beta {
+                        UpdateChannel::Stable
+                    } else {
+                        UpdateChannel::Beta
+                    }),
+                    cx,
+                )),
             )
     }
 
@@ -266,8 +374,8 @@ impl SettingsWindow {
             .map(|&feature| {
                 let id = feature.setting_id();
                 let on = features.enabled(feature);
-                ui::row(&self.theme, id, feature.label())
-                    .description(feature.description())
+                ui::row(&self.theme, id, i18n::message(feature.message(), &[]))
+                    .description(i18n::message(feature.description_message(), &[]))
                     .switch(self.preference_toggle(
                         format!("{id}-toggle"),
                         on,
@@ -318,5 +426,61 @@ impl SettingsWindow {
             move |cx| AgentSkill::choose(choice, cx),
             cx,
         );
+    }
+
+    fn chat_width_controls(&self, cx: &mut Context<Self>) -> Div {
+        let full = self.config.chat.max_width == 0;
+        let field = NumberField::ChatMaxWidth;
+        let value = self.number_value(field, f32::from(self.config.chat.max_width));
+        let view = cx.entity().downgrade();
+        div()
+            .child(
+                ui::row(
+                    &self.theme,
+                    "general-chat-full-width",
+                    fl!("settings-general-chat-full-width"),
+                )
+                .description(fl!("settings-general-chat-full-width-description"))
+                .switch(self.preference_toggle(
+                    "general-chat-full-width-toggle",
+                    full,
+                    Preference::ChatMaxWidth(if full {
+                        crate::config::chat::DEFAULT_MAX_WIDTH
+                    } else {
+                        0
+                    }),
+                    cx,
+                )),
+            )
+            .when(!full, |controls| {
+                controls.child(
+                    ui::row(
+                        &self.theme,
+                        "general-chat-width",
+                        fl!("settings-general-chat-width"),
+                    )
+                    .description(fl!("settings-general-chat-width-description"))
+                    .control(ui::number(
+                        &self.theme,
+                        ui::Number {
+                            id: field.selector(),
+                            value,
+                            range: field.range(),
+                            unit: ui::Unit::Pixels,
+                            look: ui::Look::Slider,
+                            enabled: !self.quitting && self.closing.is_none(),
+                        },
+                        self.number_edit_for(field),
+                        on_value(cx, move |this, change, _, cx| {
+                            this.commit_number(field, change, cx)
+                        }),
+                        move |window, cx| {
+                            let _ = view.update(cx, |this, cx| {
+                                this.begin_number_edit(field, value, window, cx)
+                            });
+                        },
+                    )),
+                )
+            })
     }
 }
