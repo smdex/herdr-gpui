@@ -576,6 +576,11 @@ pub const COMMANDS: &[CommandInfo] = &[
         message: "commands-focus-agent",
     },
     CommandInfo {
+        command: Command::ToggleMenuBar,
+        name: "toggle_menu_bar",
+        message: "fork-chrome-toggle-menu-bar",
+    },
+    CommandInfo {
         command: Command::ToggleSidebar,
         name: "toggle_sidebar",
         message: "commands-toggle-sidebar",
