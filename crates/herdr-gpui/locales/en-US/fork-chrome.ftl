@@ -1,4 +1,3 @@
-commands-toggle-menu-bar = Toggle Menu Bar
 fork-chrome-menu-bar = Show menu bar
 fork-chrome-menu-bar-description = Main windows. F10 opens the menu temporarily when hidden.
 fork-chrome-client-decorations = Request client-side decorations
