@@ -571,7 +571,7 @@ pub const COMMANDS: &[CommandInfo] = &[
     CommandInfo {
         command: Command::ToggleMenuBar,
         name: "toggle_menu_bar",
-        label: "Toggle Menu Bar",
+        message: "fork-chrome-toggle-menu-bar",
     },
     CommandInfo {
         command: Command::ToggleSidebar,
