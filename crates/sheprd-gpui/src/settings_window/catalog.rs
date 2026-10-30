@@ -340,15 +340,15 @@ pub(super) const CATALOG: &[Entry] = &[
     entry(
         Section::General,
         "general-menu-bar",
-        "Show menu bar",
-        "Main windows. F10 opens the menu temporarily when hidden.",
+        "fork-chrome-menu-bar",
+        "fork-chrome-menu-bar-description",
     )
     .only(Availability::InWindowMenu),
     entry(
         Section::General,
         "general-client-decorations",
-        "Request client-side decorations",
-        "Wayland main windows only. Reopen the window to apply. The compositor may decline; a confirmed fallback appears in Window appearance.",
+        "fork-chrome-client-decorations",
+        "fork-chrome-client-decorations-description",
     )
     .only(Availability::Wayland),
     // One per `[features]` flag; a test checks none is missing.
