@@ -1,7 +1,7 @@
 //! Menu bar and bounded, scrollable dropdown presentation.
 
 use super::*;
-use crate::fonts::StyledFont;
+use crate::{fonts::StyledFont, i18n::fl};
 use gpui::prelude::*;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -58,7 +58,7 @@ impl HerdrWindow {
         let headings = &cx.global::<super::super::Headings>().0;
         let compact = self.compact_application_bar(window);
         let entries: Vec<_> = if compact {
-            vec![(None, SharedString::from("Menu"), false)]
+            vec![(None, SharedString::from(fl!("menus-menu")), false)]
         } else {
             headings
                 .iter()
@@ -85,7 +85,7 @@ impl HerdrWindow {
             .debug_selector(|| "application-menu-bar".into())
             // The overlay's copy repeats this bar for the pointer only.
             .when(accessible, |bar| {
-                bar.role(Role::MenuBar).aria_label("Menu bar")
+                bar.role(Role::MenuBar).aria_label(fl!("menus-menu-bar"))
             })
             .relative()
             .flex()
@@ -291,10 +291,12 @@ impl HerdrWindow {
         };
         // Focus stays on the overlay while the arrows move the highlight, so
         // the overlay is the menu and the highlighted row its active item.
-        overlay = overlay.role(Role::Menu).aria_label(
-            menu.current()
-                .map_or_else(|| SharedString::from("Menu"), |menu| menu.name.clone()),
-        );
+        overlay = overlay
+            .role(Role::Menu)
+            .aria_label(menu.current().map_or_else(
+                || SharedString::from(fl!("menus-menu")),
+                |menu| menu.name.clone(),
+            ));
         let bar = self.menu.application_bar.bar.get();
         let content = self.menu.application_bar.content.get();
         let compact = self.compact_application_bar(window);
@@ -447,7 +449,7 @@ impl HerdrWindow {
                         .id("application-menu-back")
                         .debug_selector(|| "application-menu-back".into())
                         .role(Role::MenuItem)
-                        .aria_label(format!("Back to {}", current.name))
+                        .aria_label(fl!("menus-back-to", menu = current.name.to_string()))
                         .flex_none()
                         .p(px(8.))
                         .cursor_pointer()

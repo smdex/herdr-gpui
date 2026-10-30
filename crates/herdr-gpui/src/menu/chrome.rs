@@ -452,8 +452,10 @@ impl HerdrWindow {
                     // A list of actions takes its longest label's width, which
                     // the UI font and size decide, so no fixed width fits all.
                     let forwards = page == Page::Host && self.host_menu_lists_forwards();
-                    if matches!(page, Page::StatusBar | Page::Tab | Page::Pane | Page::Group | Page::Host)
-                        && !forwards
+                    if matches!(
+                        page,
+                        Page::StatusBar | Page::Tab | Page::Pane | Page::Group | Page::Host
+                    ) && !forwards
                     {
                         let least = if page == Page::Group { 240. } else { 180. };
                         return panel

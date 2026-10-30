@@ -13,9 +13,9 @@
 
   outputs =
     {
-      self,
       nixpkgs,
       rust-overlay,
+      ...
     }:
     let
       inherit (nixpkgs) lib;
@@ -44,6 +44,7 @@
             cargo = toolchain;
             rustc = toolchain;
           };
+          version = "20261030.1";
           # Loaded with dlopen at runtime, so the linker never records them.
           runtimeLibraries = [
             pkgs.vulkan-loader
@@ -52,7 +53,8 @@
         in
         rustPlatform.buildRustPackage {
           pname = "herdr-gpui";
-          version = "0-unstable-${lib.substring 0 8 (self.lastModifiedDate or "19700101")}";
+          inherit version;
+          HERDR_RELEASE_VERSION = version;
           src = lib.fileset.toSource {
             root = ./.;
             fileset = lib.fileset.unions [
