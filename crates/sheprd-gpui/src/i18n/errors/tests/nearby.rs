@@ -9,4 +9,5 @@ fn every_nearby_variant_has_a_message() {
         Error::Spawn(std::io::Error::other("gone")),
         Error::TooLarge { limit: 4096 },
     ]);
+    assert_localized(&[crate::Error::Nearby(Error::Pipe("stdout"))]);
 }
