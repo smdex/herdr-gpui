@@ -57,7 +57,7 @@ impl SheprdWindow {
             self.render_diagnostic_card(
                 Card {
                     selector: "appearance-limitations",
-                    label: "Window appearance".into(),
+                    label: fl!("fork-chrome-window-appearance"),
                     lines,
                     expanded: self.backdrop.limitations.expanded(),
                     footer: None,
