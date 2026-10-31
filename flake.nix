@@ -148,7 +148,7 @@
           doInstallCheck = true;
           installCheckPhase = ''
             runHook preInstallCheck
-            for program in herdr-gpui herdr-acp herdr-remote-control herdr-automate; do
+            for program in herdr-gpui herdr-acp herdr-remote-control herdr-automate herdr-nearby; do
               test -x "$out/bin/$program"
               # Capture before matching: with pipefail, grep -q exiting early
               # would fail the writer with SIGPIPE (as the release smoke notes).
@@ -162,6 +162,7 @@
             $out/bin/herdr-acp --help >/dev/null
             $out/bin/herdr-remote-control --version >/dev/null
             $out/bin/herdr-automate --version >/dev/null
+            $out/bin/herdr-nearby --version >/dev/null
             $acp/bin/herdr-acp --help >/dev/null
             $remoteControl/bin/herdr-remote-control --version >/dev/null
             $remoteControl/bin/herdr-acp --help >/dev/null
