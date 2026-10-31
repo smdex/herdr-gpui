@@ -15,5 +15,8 @@ fn every_enroll_variant_has_a_message() {
         Error::Outdated,
         Error::Unexpected,
     ]);
-    assert_localized(&[app::Error::Enroll(Error::Outdated)]);
+    assert_localized(&[
+        app::Error::Enroll(Error::Outdated),
+        app::Error::Enroll(Error::NoHome),
+    ]);
 }
