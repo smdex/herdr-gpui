@@ -10,6 +10,7 @@ fn every_terminal_attach_variant_has_a_message() {
         Error::Protocol(sheprd_client::protocol::Error::FrameLimit),
         Error::Refused(None),
         Error::Refused(Some("another client holds the terminal".into())),
+        Error::Refused(Some(String::new())),
         Error::Rejected {
             version: 2,
             reason: "unsupported".into(),
