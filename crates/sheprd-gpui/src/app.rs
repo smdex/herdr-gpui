@@ -112,7 +112,7 @@ pub(crate) fn main_window_decorations(
     request: bool,
     compositor: &str,
 ) -> Option<WindowDecorations> {
-    (request && compositor == "Wayland").then_some(WindowDecorations::Client)
+    (request && compositor == "Wayland").then_some(WindowDecorations::Client) // i18n: data
 }
 
 /// Opens a main window at `placement`, or where the next one goes.
