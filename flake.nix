@@ -44,7 +44,7 @@
             cargo = toolchain;
             rustc = toolchain;
           };
-          version = "20261101.1";
+          version = "20261102.1";
           # Loaded with dlopen at runtime, so the linker never records them.
           runtimeLibraries = [
             pkgs.vulkan-loader
