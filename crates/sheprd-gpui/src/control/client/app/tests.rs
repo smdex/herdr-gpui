@@ -21,5 +21,4 @@ fn appearance_limitations_default_for_old_payloads_and_print_in_window_output() 
     );
     assert_eq!(serde_json::from_value::<WindowInfo>(json)?, window);
     Ok(())
->>>>>>> bf56e88 (fix: preserve fork packages and window chrome after the Sheprd rename)
 }
