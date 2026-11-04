@@ -1,7 +1,7 @@
 use super::*;
 use gpui::prelude::*;
 
-struct AltInput(Entity<HerdrWindow>);
+struct AltInput(Entity<SheprdWindow>);
 
 impl Render for AltInput {
     fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
@@ -19,13 +19,13 @@ impl Render for AltInput {
 }
 
 // Only the Windows modifier delivery is adapted; input and activation use the real handlers.
-fn alt_window(cx: &mut TestAppContext) -> (Entity<HerdrWindow>, &mut VisualTestContext) {
+fn alt_window(cx: &mut TestAppContext) -> (Entity<SheprdWindow>, &mut VisualTestContext) {
     let (root, cx) = cx.add_window_view(|window, cx| {
         AltInput(cx.new(|cx| {
             crate::bind_keys(cx);
             let mut view = fixture_window(window, cx);
             view._activation =
-                cx.observe_window_activation(window, HerdrWindow::window_activation_changed);
+                cx.observe_window_activation(window, SheprdWindow::window_activation_changed);
             view.focus.focus(window, cx);
             view
         }))

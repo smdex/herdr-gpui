@@ -67,7 +67,7 @@ fn hiding_reports_a_worker_release_failure_without_stranding_a_pending_cup(
     cx.update(|_, cx| toggle_with(cx, |_| Ok(FailingRelease), reports.sink()));
     cx.run_until_parked();
     view.update(cx, |_, cx| {
-        let report = crate::HerdrWindow::caffeine_report(cx);
+        let report = crate::SheprdWindow::caffeine_report(cx);
         set_visible(false, cx, report);
     });
     assert_eq!(cx.update(|_, cx| cup(cx)), Cup::Pending);
