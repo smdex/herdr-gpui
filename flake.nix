@@ -44,7 +44,7 @@
             cargo = toolchain;
             rustc = toolchain;
           };
-          version = "20261102.2";
+          version = "20261104.1";
           # Loaded with dlopen at runtime, so the linker never records them.
           runtimeLibraries = [
             pkgs.vulkan-loader
@@ -54,7 +54,7 @@
         rustPlatform.buildRustPackage {
           pname = "sheprd";
           inherit version;
-          SHEPRD_RELEASE_VERSION = version;
+          HERDR_RELEASE_VERSION = version;
           src = lib.fileset.toSource {
             root = ./.;
             fileset = lib.fileset.unions [
@@ -120,11 +120,15 @@
           # Nix owns the store path and upgrades come from the flake.
           postInstall = ''
             # Real copies keep current_exe beside the bundle's companions.
-            install -Dm755 $out/bin/herdr-acp $acp/bin/herdr-acp
-            install -Dm755 $out/bin/herdr-remote-control $remoteControl/bin/herdr-remote-control
-            install -Dm755 $out/bin/herdr-automate $automate/bin/herdr-automate
+            install -Dm755 $out/bin/sheprd-acp $acp/bin/sheprd-acp
+            install -Dm755 $out/bin/sheprd-remote-control $remoteControl/bin/sheprd-remote-control
+            install -Dm755 $out/bin/sheprd-automate $automate/bin/sheprd-automate
             # The remote daemon discovers ACP beside its own real executable.
-            ln -s $acp/bin/herdr-acp $remoteControl/bin/herdr-acp
+            ln -s $acp/bin/sheprd-acp $remoteControl/bin/sheprd-acp
+            ln -s sheprd-acp $acp/bin/herdr-acp
+            ln -s sheprd-acp $remoteControl/bin/herdr-acp
+            ln -s sheprd-remote-control $remoteControl/bin/herdr-remote-control
+            ln -s sheprd-automate $automate/bin/herdr-automate
             install -Dm644 scripts/release/so.pen.herdr-gpui.desktop \
               $out/share/applications/so.pen.herdr-gpui.desktop
             install -Dm644 assets/icons/sheprd-linux.svg \
@@ -148,7 +152,7 @@
           doInstallCheck = true;
           installCheckPhase = ''
             runHook preInstallCheck
-            for program in herdr-gpui herdr-acp herdr-remote-control herdr-automate herdr-nearby; do
+            for program in sheprd sheprd-acp sheprd-remote-control sheprd-automate sheprd-nearby herdr-gpui herdr-acp herdr-remote-control herdr-automate herdr-nearby; do
               test -x "$out/bin/$program"
               # Capture before matching: with pipefail, grep -q exiting early
               # would fail the writer with SIGPIPE (as the release smoke notes).
@@ -205,6 +209,10 @@
           herdr-automate = companion bundle.automate "herdr-automate";
           herdr-gpui = bundle;
           herdr-remote-control = companion bundle.remoteControl "herdr-remote-control";
+          sheprd = bundle;
+          sheprd-acp = companion bundle.acp "sheprd-acp";
+          sheprd-automate = companion bundle.automate "sheprd-automate";
+          sheprd-remote-control = companion bundle.remoteControl "sheprd-remote-control";
         };
     in
     {
@@ -213,8 +221,8 @@
         let
           packages = packagesFor pkgs;
         in
-        packages // { default = packages.herdr-gpui; sheprd = packages.herdr-gpui; }
+        packages // { default = packages.sheprd; }
       );
-      overlays.default = final: _prev: (packagesFor final) // { sheprd = (packagesFor final).herdr-gpui; };
+      overlays.default = final: _prev: packagesFor final;
     };
 }
