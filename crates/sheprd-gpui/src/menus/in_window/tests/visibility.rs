@@ -131,7 +131,7 @@ fn hidden_menu_header_keeps_controls_accessible_with_long_git_counts_and_split_g
             view.config.show_window_controls = true;
             view.live.snapshot = Some(std::sync::Arc::new(
                 serde_json::from_str(include_str!(
-                    "../../../../../herdr-protocol/tests/fixtures/endpoint-snapshot-v1.json"
+                    "../../../../../sheprd-protocol/tests/fixtures/endpoint-snapshot-v1.json"
                 ))
                 .unwrap(),
             ));
