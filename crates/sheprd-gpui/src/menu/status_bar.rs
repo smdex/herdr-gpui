@@ -1,5 +1,5 @@
 //! The status bar uses the shared popup shell and preference writer.
-use crate::HerdrWindow;
+use crate::SheprdWindow;
 use crate::config::Config;
 use gpui::{prelude::*, *};
 
@@ -76,7 +76,7 @@ pub(crate) struct StatusBarIo(pub std::sync::Arc<Save>);
 #[cfg(test)]
 impl Global for StatusBarIo {}
 
-impl HerdrWindow {
+impl SheprdWindow {
     pub(crate) fn status_bar_menu_count(&self) -> usize {
         ITEMS.len() + usize::from(self.config.status_bar.keep_awake)
     }

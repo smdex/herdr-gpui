@@ -1,12 +1,25 @@
-use super::agent_groups_text;
+use super::*;
 
 #[test]
-fn agent_groups_mark_the_one_shown() {
-    let groups = ["demo".to_owned(), "other".to_owned()];
-    assert_eq!(agent_groups_text(None, &groups), "  demo\n  other");
-    assert_eq!(agent_groups_text(Some("other"), &groups), "  demo\n* other");
+fn appearance_limitations_default_for_old_payloads_and_print_in_window_output() -> anyhow::Result<()>
+{
+    let mut window: WindowInfo = serde_json::from_value(serde_json::json!({
+        "id": 1, "title": "Sheprd UI", "active": true, "fullscreen": false,
+        "width": 800, "height": 600, "workspace": null, "hosts": []
+    }))?;
+    assert!(window.appearance_limitations.is_empty());
+    window
+        .appearance_limitations
+        .push("No usable blur protocol".into());
+    let mut text = String::new();
+    describe_window(&window, &mut text);
+    assert!(text.contains("    appearance: No usable blur protocol\n"));
+    let json = serde_json::to_value(&window)?;
     assert_eq!(
-        agent_groups_text(None, &[]),
-        "No coordinator sessions are listed"
+        json["appearance_limitations"],
+        serde_json::json!(["No usable blur protocol"])
     );
+    assert_eq!(serde_json::from_value::<WindowInfo>(json)?, window);
+    Ok(())
+>>>>>>> bf56e88 (fix: preserve fork packages and window chrome after the Sheprd rename)
 }
