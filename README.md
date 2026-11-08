@@ -261,20 +261,11 @@ nix run github:sheprd-labs/sheprd
 ```
 
 The flake builds with the toolchain pinned in `rust-toolchain.toml` on x86_64 and
-ARM64 Linux. Like the packages, it never updates itself. The default and
-`sheprd` packages bundle `sheprd-acp`, `sheprd-remote-control`, and
-`sheprd-automate` beside the app. The old `herdr-*` names remain compatibility
-aliases. Each companion is also a separate installable
-flake package and overlay attribute, for example:
-
-```sh
-nix build github:smdex/herdr-gpui#sheprd-acp
-nix run github:smdex/herdr-gpui#sheprd-automate -- --help
-```
-
-These outputs share one build but do not depend on the GUI at runtime.
-`sheprd-remote-control` also carries access to `sheprd-acp`, which it needs to
-start chats. The overlay (`overlays.default`) exposes the same package names.
+ARM64 Linux, and Apple Silicon macOS (14.2 or newer). On macOS, `nix build`
+also creates `result/Applications/Sheprd.app`, including the pinned herdr-core
+and the native Bluetooth helper; launch it with `open result/Applications/Sheprd.app`.
+Linux users supply their own Herdr or herdr-core daemon. Nix builds never update
+themselves; upgrade through Nix.
 
 ### Windows installers
 
@@ -320,18 +311,6 @@ Install Rust/rustup and, on macOS, the Xcode command-line tools. The repository
 pins Rust 1.99.0 and GPUI 0.3.10 (the `gpui-pre` snapshot crate); the Rust version
 is declared in `rust-toolchain.toml` and mirrored in `mise.toml`, so `mise install`
 also provisions it.
-
-GPUI uses the registry versions pinned by upstream and `Cargo.lock`. The older
-0.3.6 platform backport is not compatible with this snapshot and is no longer
-patched into the build. The local `embed-resource` patch remains in effect.
-Check `cargo metadata --locked` and `cargo tree --locked -i gpui-pre` before
-changing the dependency graph.
-
-Decoration and blur requests remain available, but GPUI 0.3.10 does not expose
-the processed decoration-negotiation or blur-support probes used by the older
-backport. The app does not infer compositor refusal or visible blur from a
-request. Native compositor/GPU, scale/tiling, and macOS/Windows visual QA remain
-separate requirements.
 
 ```sh
 git clone https://github.com/sheprd-labs/sheprd.git
@@ -493,6 +472,9 @@ surfaces it is sent, and sends semantic input back. For herdr-core, it uses
 native cell presentation. Each daemon owns its terminal processes; the app
 keeps its own views and preferences. Closing or detaching the GUI leaves the
 daemons and their terminals running. Existing Herdr 1 sessions stay on Herdr 1.
+
+See the [Herdr 2 acceptance matrix](docs/herdr2-acceptance.md) for the audited
+feature scope, remaining gaps, implementation owners, and pending runtime QA.
 
 ### macOS Git permission errors
 
