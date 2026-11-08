@@ -397,7 +397,6 @@ impl SheprdWindow {
                 | Command::OpenPx0
                 | Command::RemotePair
                 | Command::ToggleStatusBar
-                | Command::ToggleMenuBar
                 | Command::ToggleModPanel
                 | Command::FocusNextRegion
                 | Command::FocusPreviousRegion

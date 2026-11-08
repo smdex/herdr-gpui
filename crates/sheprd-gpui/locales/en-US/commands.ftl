@@ -98,7 +98,6 @@ commands-toggle-full-screen = Toggle Full Screen
 commands-toggle-menu-bar = Toggle Menu Bar
 commands-toggle-sidebar = Toggle Sidebar
 commands-toggle-status-bar = Toggle Status Bar
-commands-toggle-menu-bar = Toggle Menu Bar
 commands-toggle-mod-panel = Toggle Mod Panel
 commands-toggle-zen-mode = Toggle Zen Mode
 commands-toggle-zoom = Toggle Pane Zoom

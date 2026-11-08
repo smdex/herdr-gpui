@@ -14,5 +14,5 @@ fn the_toggle_flips_only_where_the_window_draws_the_bar(cx: &mut TestAppContext)
     });
     let visible = view.read_with(cx, |view, _| view.menu_bar_visible);
     assert_eq!(visible, !crate::menus::IN_WINDOW);
-    assert!(!view.read_with(cx, |view, _| view.menu_bar_shown()));
+    assert!(!view.read_with(cx, |view, _| view.application_bar_visible()));
 }

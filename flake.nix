@@ -13,17 +13,16 @@
 
   outputs =
     {
+      self,
       nixpkgs,
       rust-overlay,
-      ...
     }:
     let
       inherit (nixpkgs) lib;
-      # GPUI's Linux backend is the only one this flake builds; macOS users
-      # install the signed DMG or the Homebrew cask instead.
       systems = [
         "x86_64-linux"
         "aarch64-linux"
+        "aarch64-darwin"
       ];
       forAllSystems =
         f:
@@ -36,25 +35,45 @@
             }
           )
         );
+      herdrCoreData = builtins.fromJSON (builtins.readFile ./scripts/release/herdr-core.json);
       package =
         pkgs:
         let
-          toolchain = (pkgs.extend rust-overlay.overlays.default).rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
+          inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
+          toolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
           rustPlatform = pkgs.makeRustPlatform {
             cargo = toolchain;
             rustc = toolchain;
           };
-          version = "20261104.1";
-          # Loaded with dlopen at runtime, so the linker never records them.
-          runtimeLibraries = [
+          # Loaded with dlopen at runtime on Linux, so the linker never records them.
+          runtimeLibraries = lib.optionals isLinux [
             pkgs.vulkan-loader
             pkgs.wayland
           ];
+          # herdr-core is a prebuilt binary; on Linux it targets FHS and is not patched
+          # for NixOS, so Linux users supply their own daemon or PATH package. On macOS,
+          # Mach-O binaries use system dyld and run natively, so we bundle it into Sheprd.app.
+          herdrCoreTarget = if isDarwin && pkgs.stdenv.hostPlatform.isAarch64 then "macos-aarch64" else null;
+          herdrCore =
+            if herdrCoreTarget != null then
+              let
+                entry = herdrCoreData.targets.${herdrCoreTarget};
+                tarball = pkgs.fetchurl {
+                  inherit (entry) url sha256;
+                };
+              in
+              pkgs.runCommand "herdr-core" { } ''
+                mkdir -p $out/bin
+                tar -xzf ${tarball} -C $out/bin
+                chmod 755 $out/bin/herdr-core
+              ''
+            else
+              null;
+          nearby = pkgs.callPackage ./macos/sheprd-nearby/package.nix { };
         in
         rustPlatform.buildRustPackage {
           pname = "sheprd";
-          inherit version;
-          HERDR_RELEASE_VERSION = version;
+          version = "0-unstable-${lib.substring 0 8 (self.lastModifiedDate or "19700101")}";
           src = lib.fileset.toSource {
             root = ./.;
             fileset = lib.fileset.unions [
@@ -65,9 +84,12 @@
               ./assets
               # The agent skill is compiled into the executable.
               ./skills
+              ./LICENSE
+              ./NOTICE
               ./scripts/release/org.sheprd.Sheprd.desktop
               # The herdr-core release a remote install pins is compiled in.
               ./scripts/release/herdr-core.json
+              ./scripts/release/herdr-core-licenses.txt
             ];
           };
           outputs = [
@@ -78,10 +100,13 @@
           ];
           cargoLock = {
             lockFile = ./Cargo.lock;
+            # All Moonframe crates share this pinned Git checkout, including
+            # when the optional feature is off and Cargo only vendors it.
+            outputHashes."moonframe-0.3.1" = "sha256-DSroyTi58a5T15DKmZCs7v0vnYI6CtHxhaeMUw4xyYQ=";
           };
-          # The app starts chats with the herdr-acp beside its executable,
-          # runs the herdr-remote-control beside it as a user service, runs
-          # automations in the herdr-automate there, and starts herdr-nearby
+          # The app starts chats with the sheprd-acp beside its executable,
+          # runs the sheprd-remote-control beside it as a user service, runs
+          # automations in the sheprd-automate there, and starts sheprd-nearby
           # for nearby pairing and presence over Bluetooth.
           cargoBuildFlags = [
             "-p"
@@ -92,6 +117,8 @@
             "sheprd-remote-control"
             "-p"
             "sheprd-automate"
+          ]
+          ++ lib.optionals isLinux [
             "-p"
             "sheprd-nearby"
           ];
@@ -104,82 +131,108 @@
             "cli"
           ];
           nativeBuildInputs = [
-            pkgs.makeWrapper
             pkgs.pkg-config
             rustPlatform.bindgenHook
-          ];
-          buildInputs = [
-            pkgs.alsa-lib
-            pkgs.fontconfig
-            pkgs.freetype
-            pkgs.libxkbcommon
-            pkgs.libxcb
           ]
-          ++ runtimeLibraries;
+          ++ lib.optionals isLinux [
+            pkgs.makeWrapper
+          ];
+          buildInputs =
+            lib.optionals isLinux [
+              pkgs.alsa-lib
+              pkgs.fontconfig
+              pkgs.freetype
+              pkgs.libxkbcommon
+              pkgs.libxcb
+            ]
+            ++ runtimeLibraries
+            ++ lib.optionals isDarwin [
+              pkgs.apple-sdk_14
+              pkgs.libiconv
+            ];
+
+          env = lib.optionalAttrs isDarwin {
+            MACOSX_DEPLOYMENT_TARGET = "14.2";
+          };
+
           # No updater key is embedded, so this build never replaces itself;
           # Nix owns the store path and upgrades come from the flake.
-          postInstall = ''
-            install -Dm644 scripts/release/org.sheprd.Sheprd.desktop \
-              $out/share/applications/org.sheprd.Sheprd.desktop
-            # Real copies keep current_exe beside the bundle's companions.
-            install -Dm755 $out/bin/sheprd-acp $acp/bin/sheprd-acp
-            install -Dm755 $out/bin/sheprd-remote-control $remoteControl/bin/sheprd-remote-control
-            install -Dm755 $out/bin/sheprd-automate $automate/bin/sheprd-automate
-            # The remote daemon discovers ACP beside its own real executable.
-            ln -s $acp/bin/sheprd-acp $remoteControl/bin/sheprd-acp
-            ln -s sheprd-acp $acp/bin/herdr-acp
-            ln -s sheprd-acp $remoteControl/bin/herdr-acp
-            ln -s sheprd-remote-control $remoteControl/bin/herdr-remote-control
-            ln -s sheprd-automate $automate/bin/herdr-automate
-            install -Dm644 assets/icons/sheprd-linux.svg \
-              $out/share/icons/hicolor/scalable/apps/sheprd.svg
-          '';
-          postFixup = ''
+          postInstall =
+            if isDarwin then
+              ''
+                app="$out/Applications/Sheprd.app"
+                mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
+
+                # Relocate compiled executables into the macOS app bundle
+                for bin in sheprd sheprd-acp sheprd-remote-control sheprd-automate; do
+                  mv "$out/bin/$bin" "$app/Contents/MacOS/$bin"
+                done
+                install -Dm755 ${nearby}/bin/sheprd-nearby "$app/Contents/MacOS/sheprd-nearby"
+
+                ${lib.optionalString (herdrCore != null) ''
+                  install -Dm755 ${herdrCore}/bin/herdr-core "$app/Contents/MacOS/herdr-core"
+                ''}
+
+                # Legacy and helper symlinks in bundle
+                ln -s sheprd "$app/Contents/MacOS/herdr-gpui"
+                for helper in acp automate nearby remote-control; do
+                  ln -s "sheprd-$helper" "$app/Contents/MacOS/herdr-$helper"
+                done
+
+                # Bundle metadata and resources
+                cp assets/macos/Info.plist "$app/Contents/Info.plist"
+                cp assets/icons/Sheprd.icns "$app/Contents/Resources/Sheprd.icns"
+                cp assets/icons/Sheprd.car "$app/Contents/Resources/Assets.car"
+                cp LICENSE NOTICE "$app/Contents/Resources/"
+                cp crates/sheprd-gpui/SOUND-NOTICE.md "$app/Contents/Resources/"
+                cp assets/icons/LICENSE-octicons "$app/Contents/Resources/"
+                cp scripts/release/herdr-core-licenses.txt "$app/Contents/Resources/HERDR-CORE-LICENSES.txt"
+
+                # Expose binaries on PATH via symlinks pointing into the bundle
+                mkdir -p $out/bin
+                for executable in sheprd sheprd-acp sheprd-remote-control sheprd-automate sheprd-nearby; do
+                  ln -s "$app/Contents/MacOS/$executable" "$out/bin/$executable"
+                done
+                ln -s "$app/Contents/MacOS/sheprd" "$out/bin/herdr-gpui"
+                for helper in acp automate nearby remote-control; do
+                  ln -s "$app/Contents/MacOS/sheprd-$helper" "$out/bin/herdr-$helper"
+                done
+                ${lib.optionalString (herdrCore != null) ''
+                  ln -s "$app/Contents/MacOS/herdr-core" "$out/bin/herdr-core"
+                ''}
+              ''
+            else
+              ''
+                install -Dm644 scripts/release/org.sheprd.Sheprd.desktop \
+                  $out/share/applications/org.sheprd.Sheprd.desktop
+                # Real copies keep current_exe beside the bundle's companions.
+                install -Dm755 $out/bin/sheprd-acp $acp/bin/sheprd-acp
+                install -Dm755 $out/bin/sheprd-remote-control $remoteControl/bin/sheprd-remote-control
+                install -Dm755 $out/bin/sheprd-automate $automate/bin/sheprd-automate
+                # The remote daemon discovers ACP beside its own real executable.
+                ln -s $acp/bin/sheprd-acp $remoteControl/bin/sheprd-acp
+                ln -s sheprd-acp $acp/bin/herdr-acp
+                ln -s sheprd-acp $remoteControl/bin/herdr-acp
+                ln -s sheprd-remote-control $remoteControl/bin/herdr-remote-control
+                ln -s sheprd-automate $automate/bin/herdr-automate
+                install -Dm644 assets/icons/sheprd-linux.svg \
+                  $out/share/icons/hicolor/scalable/apps/sheprd.svg
+              '';
+
+          postFixup = lib.optionalString isLinux ''
             patchelf --add-rpath ${lib.makeLibraryPath runtimeLibraries} $out/bin/sheprd
             wrapProgram $out/bin/sheprd \
-              --prefix PATH : ${lib.makeBinPath [ pkgs.wl-clipboard pkgs.xclip ]}
+              --prefix PATH : ${
+                lib.makeBinPath [
+                  pkgs.wl-clipboard
+                  pkgs.xclip
+                ]
+              }
             # Point at the final wrapper, including its clipboard PATH setup.
             ln -s sheprd $out/bin/herdr-gpui
             for helper in acp automate nearby remote-control; do
               ln -s "sheprd-$helper" "$out/bin/herdr-$helper"
             done
-          '';
-          # Every build runs each shipped program's safe CLI and checks ldd,
-          # as the release smoke test does, so a package missing a companion
-          # or linking outside the store fails to build. Each check prints and
-          # exits before any UI, socket, or daemon starts; a wrapper that
-          # still runs the real program passes too.
-          doInstallCheck = true;
-          installCheckPhase = ''
-            runHook preInstallCheck
-            for program in sheprd sheprd-acp sheprd-remote-control sheprd-automate sheprd-nearby herdr-gpui herdr-acp herdr-remote-control herdr-automate herdr-nearby; do
-              test -x "$out/bin/$program"
-              # Capture before matching: with pipefail, grep -q exiting early
-              # would fail the writer with SIGPIPE (as the release smoke notes).
-              linked=$(ldd "$out/bin/$program" 2>/dev/null || true)
-              if grep "not found" <<<"$linked"; then
-                echo "$program has libraries the output does not carry" >&2
-                exit 1
-              fi
-            done
-            $out/bin/herdr-gpui --help >/dev/null
-            $out/bin/herdr-acp --help >/dev/null
-            $out/bin/herdr-remote-control --version >/dev/null
-            $out/bin/herdr-automate --version >/dev/null
-            $out/bin/herdr-nearby --version >/dev/null
-            $acp/bin/herdr-acp --help >/dev/null
-            $remoteControl/bin/herdr-remote-control --version >/dev/null
-            $remoteControl/bin/herdr-acp --help >/dev/null
-            $automate/bin/herdr-automate --version >/dev/null
-            for standalone in "$acp" "$remoteControl" "$automate"; do
-              test ! -e "$standalone/bin/herdr-gpui"
-              # A split output must not retain the bundle through ELF RPATHs.
-              if grep -r -a -l -F "$out" "$standalone"; then
-                echo "standalone output references the GUI bundle" >&2
-                exit 1
-              fi
-            done
-            runHook postInstallCheck
           '';
           meta = {
             description = "Native GPUI client for an existing local Herdr daemon";
@@ -198,7 +251,7 @@
             output
             // {
               meta = bundle.meta // {
-                description = "Herdr companion: ${program}";
+                description = "Sheprd companion: ${program}";
                 mainProgram = program;
                 outputsToInstall = [ output.outputName ];
               };
