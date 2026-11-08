@@ -1,0 +1,76 @@
+# Fork maintenance pipeline for the GitLab-hosted fork of
+# penso/herdr-gpui (now sheprd-labs/sheprd). Rebases the protected
+# default branch onto upstream main and mirrors to GitHub, twice daily
+# via schedule; also runnable manually (web) or via API trigger.
+# All logic lives in scripts/ci/sync_upstream.py (Python stdlib only).
+#
+# The maintenance job runs tests first and aborts before any remote
+# mutation if they fail. It never executes repository code: no checkout
+# of upstream, hooks disabled, fetches restricted to anchored refs.
+#
+# Required CI/CD variables (masked+protected where applicable):
+#   GL_TOKEN             project access token, write_repository only
+#                        (protected, environment: fork-maintenance)
+#   GITHUB_SSH_KEY       FILE variable: private write deploy key for
+#                        github.com/smdex/herdr-gpui (protected)
+#   GITHUB_KNOWN_HOSTS   FILE variable: pinned GitHub host keys
+#                        (protected)
+# See docs/fork-sync.md for full setup, bootstrap, and recovery.
+
+workflow:
+  rules:
+    # Scheduled maintenance (schedule targets the default branch).
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    # Manual "Run pipeline" from the UI.
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    # API triggers (acceptance tests by maintainers).
+    - if: '$CI_PIPELINE_SOURCE == "api"'
+    # Plain pushes and MRs never trigger this pipeline.
+    - when: never
+
+stages:
+  - test
+  - sync
+
+fork-sync-tests:
+  stage: test
+  tags: [usa-incus-autoscaler]
+  timeout: 15m
+  # Shell runner with nix; any image directive is not relied upon.
+  before_script:
+    - export PYTHONDONTWRITEBYTECODE=1
+    # Never use an agent-forwarded identity from the runner session.
+    - unset SSH_AUTH_SOCK
+  script:
+    - python3 scripts/ci/test_sync_upstream.py -v
+  rules:
+    - if: '$CI_PIPELINE_SOURCE =~ /\A(schedule|web|api)\z/ && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_REF_PROTECTED == "true"'
+
+fork-sync:
+  stage: sync
+  tags: [usa-incus-autoscaler]
+  timeout: 15m
+  # Serialize across pipelines: only one maintenance run at a time.
+  resource_group: fork-maintenance
+  environment:
+    name: fork-maintenance
+  variables:
+    GL_SERVER_URL: "$CI_SERVER_URL"
+    GL_PROJECT_PATH: "$CI_PROJECT_PATH"
+    DEFAULT_BRANCH: "$CI_DEFAULT_BRANCH"
+    UPSTREAM_URL: "https://github.com/sheprd-labs/sheprd.git"
+    UPSTREAM_REF: "main"
+    GITHUB_MIRROR_URL: "git@github.com:smdex/herdr-gpui.git"
+  before_script:
+    # Read-only smoke check of variables before mutating anything.
+    # Never use an agent-forwarded identity from the runner session.
+    - unset SSH_AUTH_SOCK
+    - |
+      printf 'source=%s ref=%s protected=%s env=%s\n' "$CI_PIPELINE_SOURCE" "$CI_COMMIT_REF_NAME" "$CI_COMMIT_REF_PROTECTED" "$CI_ENVIRONMENT_NAME"
+      : "${GL_TOKEN:?GL_TOKEN is unavailable}"
+      : "${GITHUB_SSH_KEY:?GITHUB_SSH_KEY file variable is unavailable}"
+      : "${GITHUB_KNOWN_HOSTS:?GITHUB_KNOWN_HOSTS file variable is unavailable}"
+  script:
+    - PYTHONDONTWRITEBYTECODE=1 python3 scripts/ci/sync_upstream.py sync
+  rules:
+    - if: '$CI_PIPELINE_SOURCE =~ /\A(schedule|web|api)\z/ && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_REF_PROTECTED == "true"'
