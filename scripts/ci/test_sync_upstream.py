@@ -218,6 +218,29 @@ class SyncTestCase(unittest.TestCase):
         self.assertIn("checkpoint missing", proc.stderr)
         self.assertEqual(self.world.ref(self.world.github), self.fork_tip)
 
+    def test_upstream_absorbed_fork_patch_keeps_the_fork_commit(self) -> None:
+        # Upstream independently incorporates our patch. Retain its fork
+        # commit explicitly as empty rather than silently dropping history.
+        up = self.world.push_new(
+            self.world.upstream, {"fork.txt": "fork"}, "absorb fork patch",
+        )
+        proc = self.run_sync()
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        gl = self.world.ref(self.world.gitlab)
+        self.assertEqual(self.world.ref(self.world.github), gl)
+        self.assertEqual(self.world.ref(self.world.gitlab, su.CHECKPOINT_REF), gl)
+        count = run_git("--git-dir", str(self.world.gitlab), "rev-list",
+                        "--count", gl, f"^{up}")
+        self.assertEqual(count, "1")
+        self.assertEqual(
+            run_git("--git-dir", str(self.world.gitlab), "rev-parse", f"{gl}^"),
+            up,
+        )
+        self.assertEqual(
+            run_git("--git-dir", str(self.world.gitlab), "show", f"{gl}:fork.txt"),
+            "fork",
+        )
+
     def test_fork_commit_count_survives_rebase(self) -> None:
         for i in range(3):
             self.world.push_new(self.world.upstream, {f"u{i}.txt": "x"}, f"u{i}")

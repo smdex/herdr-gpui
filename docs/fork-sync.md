@@ -61,8 +61,9 @@ A conflict-free rebase must retain the fork-only commit count and contain
 the fetched upstream tip. Conflicts, dropped commits, and unexpected
 remote changes abort rather than receive an automatic resolution.
 Resolve these manually in an isolated checkout, validate, publish to
-GitLab, and rerun. Incorporation of a fork patch upstream can also trip
-the conservative commit-count check and requires manual review.
+GitLab, and rerun. When upstream independently incorporates a fork patch,
+`--reapply-cherry-picks --empty=keep` retains that fork commit explicitly
+as empty. This preserves history without weakening the commit-count check.
 
 Push order is GitLab `main`, GitHub `main`, then the checkpoint, each
 using an explicit expected-SHA `--force-with-lease`. Remote tips are
