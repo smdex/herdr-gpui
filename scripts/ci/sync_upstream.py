@@ -317,7 +317,10 @@ def do_sync() -> int:
         else:
             # Fork-only commits must survive the rebase one-for-one.
             before = commit_count(plain, repo_dir, gl_main, up_main)
-            proc = git(plain, "-C", work_dir, "rebase", up_main, check=False)
+            # Preserve fork history even when upstream independently applied
+            # a patch: keep that commit explicitly as empty, never drop it.
+            proc = git(plain, "-C", work_dir, "rebase",
+                       "--reapply-cherry-picks", "--empty=keep", up_main, check=False)
             if proc.returncode != 0:
                 git(plain, "-C", work_dir, "rebase", "--abort", check=False)
                 raise SyncError(
