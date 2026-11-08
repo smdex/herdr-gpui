@@ -5300,22 +5300,17 @@ X11, Windows and macOS keep their existing behavior. The custom header, menu
 bar and zen band reuse the backdrop opacity; shadows and resize handles remain
 outside the content and respect tiled edges.
 
-**Translucent** and **Blur behind** remain independent. When GPUI reports a
-processed server-decoration fallback for this window's initial client request,
-a dismissible **Window appearance** notice explains it. Unsupported blur is
-reported only while the effective background actually requests blur, not for
-opaque windows, pictures, or translucency alone. Pending and unreported platform
-statuses produce no warning. Capability changes and appearance changes refresh
-the notice; resolving a limitation clears it. Dismissal holds until its text
-changes or the limitation clears and returns.
+**Translucent** and **Blur behind** remain independent. They request platform
+appearance changes, not confirmation of blurred pixels. The pinned GPUI 0.3.10
+API does not expose processed decoration-negotiation or blur-support probes,
+so the app cannot reliably diagnose compositor refusal or unsupported blur.
+It does not infer either outcome from the saved request or current decorations.
 
-`status` and `window list` also report current `appearance_limitations` per
-window, including dismissed notices. An advertised usable blur request path is
-**not** confirmation of blurred pixels. The pinned GPUI platform backport requests
-ext-background-effect-v1 blur when advertised, with legacy KDE fallback. Its
-immutable revision and Nix checkout hash are documented in the
-[root README](../../README.md#from-source). Native compositor QA and full
-section-3 acceptance remain outstanding.
+`status` and `window list` retain the `appearance_limitations` field for protocol
+compatibility. It is empty when the platform cannot establish a limitation,
+which is not a guarantee that every requested effect is supported. See the
+[root README](../../README.md#from-source) for the current dependency contract.
+Native compositor QA and full section-3 acceptance remain outstanding.
 
 Both region commands can be rebound in Keyboard
 Shortcuts (Cmd+F6 and Cmd+Shift+F6 on macOS). A region's controls are tab

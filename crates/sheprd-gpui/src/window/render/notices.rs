@@ -54,6 +54,7 @@ impl SheprdWindow {
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) enum NoticeCard {
     AppConfig,
+    Appearance,
     IconFont,
     DaemonConfig,
     Announcement,
@@ -75,7 +76,7 @@ impl SheprdWindow {
     /// reach the cards as a region of their own.
     pub(crate) fn notices_shown(&self) -> bool {
         use NoticeCard::*;
-        [AppConfig, IconFont, DaemonConfig, Announcement]
+        [AppConfig, Appearance, IconFont, DaemonConfig, Announcement]
             .into_iter()
             .any(|card| self.notice_shown(card))
     }
@@ -84,6 +85,7 @@ impl SheprdWindow {
     pub(crate) fn notice_shown(&self, card: NoticeCard) -> bool {
         self.notices_allowed()
             && match card {
+                NoticeCard::Appearance => self.backdrop.limitations.visible().is_some(),
                 NoticeCard::AppConfig => self.gui_config_diagnostic.visible().is_some(),
                 NoticeCard::IconFont => self.icon_font_notice.visible().is_some(),
                 NoticeCard::DaemonConfig => self
