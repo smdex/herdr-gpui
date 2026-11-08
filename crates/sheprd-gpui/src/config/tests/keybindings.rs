@@ -1,4 +1,5 @@
 use super::*;
+use crate::config::devices::MAX_DEVICES;
 
 #[test]
 fn devices_opt_into_server_keybindings_one_by_one() -> anyhow::Result<()> {

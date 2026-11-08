@@ -131,10 +131,7 @@ impl SheprdWindow {
         let notification_mutes = Self::observe_notification_mutes(cx);
         let prefix_interceptor = Self::intercept_prefix(window, cx);
         let activation = cx.observe_window_activation(window, Self::window_activation_changed);
-        let backdrop = super::backdrop::State::new(crate::app::main_window_decorations(
-            config.request_client_side_decorations,
-            cx.compositor_name(),
-        ));
+        let backdrop = super::backdrop::State::default();
         let appearance_change = cx.observe_window_appearance(window, |this, window, cx| {
             this.sync_appearance_limitations(window);
             this.apply_shared_theme(cx);

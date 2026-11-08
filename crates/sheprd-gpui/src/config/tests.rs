@@ -1,7 +1,7 @@
 use super::*;
 use anyhow::Context as _;
-use std::env;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::{env, path::PathBuf};
 
 mod accent;
 mod activity_bar;

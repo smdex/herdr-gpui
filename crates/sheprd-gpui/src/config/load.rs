@@ -3,10 +3,10 @@
 
 use super::{
     Config, DEFAULT_CONFIG, Daemon, LOCAL_CONFIG, MANAGED_HEADER, Settings, daemon_config_path,
-    daemon_settings, devices::MAX_DEVICES, edit::parse_value, error::Error, theme::ThemeName,
+    daemon_settings, devices::MAX_DEVICES, error::Error, font_weight, status_icons,
+    theme::ThemeName,
 };
 use crate::Result;
-use crate::config::backdrop::{BackgroundBlurSupport, DecorationNegotiation};
 use crate::i18n::fl;
 use crate::{
     config::{NotificationConfig, Padding},
@@ -140,7 +140,7 @@ impl Config {
         )
     }
 
-    fn load_startup_path(path: &Path, daemon: &Path) -> Result<Self> {
+    pub(super) fn load_startup_path(path: &Path, daemon: &Path) -> Result<Self> {
         let (text, source) = Self::overrides_text(path)?;
         Self::parse_layers([DEFAULT_CONFIG, &text], &daemon_settings(daemon))
             .map_err(|error| error.at_path(&source))
@@ -167,7 +167,7 @@ impl Config {
 
     /// `daemon` is the herdr config whose settings this GUI also honors. It is
     /// read for those keys alone and never written; a missing one is normal.
-    fn load_path(path: &Path, daemon: &Path) -> Result<Self> {
+    pub(super) fn load_path(path: &Path, daemon: &Path) -> Result<Self> {
         let base = daemon_settings(daemon);
         let (_lock, local) = Self::prepare_files(path)?;
         let text = fs::read_to_string(&local)
@@ -196,18 +196,18 @@ impl Config {
     /// The GUI file on its own, with nothing layered under it: the shape the
     /// tests below read, since loading also consults the daemon's config.
     #[cfg(test)]
-    fn parse(text: &str) -> Result<Self> {
+    pub(super) fn parse(text: &str) -> Result<Self> {
         Self::parse_over(text, &Daemon::default())
     }
 
     /// `base` is what the daemon's own config asked for, which every key this
     /// file names overrides.
-    fn parse_over(text: &str, base: &Daemon) -> Result<Self> {
+    pub(super) fn parse_over(text: &str, base: &Daemon) -> Result<Self> {
         Self::parse_layers([text], base)
     }
 
     /// The files layered as loading layers them, later ones over earlier.
-    fn merged<'a>(texts: impl IntoIterator<Item = &'a str>) -> Result<toml::Value> {
+    pub(super) fn merged<'a>(texts: impl IntoIterator<Item = &'a str>) -> Result<toml::Value> {
         let mut builder = config_loader::Config::builder();
         for text in texts {
             builder = builder.add_source(config_loader::File::from_str(
@@ -221,7 +221,10 @@ impl Config {
         Ok(loaded.try_deserialize()?)
     }
 
-    fn parse_layers<'a>(texts: impl IntoIterator<Item = &'a str>, base: &Daemon) -> Result<Self> {
+    pub(super) fn parse_layers<'a>(
+        texts: impl IntoIterator<Item = &'a str>,
+        base: &Daemon,
+    ) -> Result<Self> {
         let value = Self::merged(texts)?;
         let mut unknown_keys = Vec::new();
         let mut settings: Settings = serde_ignored::deserialize(value, |path| {
