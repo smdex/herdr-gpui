@@ -14447,13 +14447,3 @@ dependencies = [
  "syn 3.0.6",
  "winnow 1.0.4",
 ]
-
-[[patch.unused]]
-name = "gpui-pre"
-version = "0.3.6"
-source = "git+https://github.com/smdex/herdr-gpui-platform-backport?rev=d4c5aa52664dfb5e75789101e50a67d0aa187bc8#d4c5aa52664dfb5e75789101e50a67d0aa187bc8"
-
-[[patch.unused]]
-name = "gpui-pre-linux"
-version = "0.3.6"
-source = "git+https://github.com/smdex/herdr-gpui-platform-backport?rev=d4c5aa52664dfb5e75789101e50a67d0aa187bc8#d4c5aa52664dfb5e75789101e50a67d0aa187bc8"
