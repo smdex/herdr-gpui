@@ -62,6 +62,7 @@ impl SheprdWindow {
             let (dismissed, toggled) = (lines.clone(), lines.clone());
             self.render_diagnostic_card(
                 Card {
+                    notice: NoticeCard::Appearance,
                     selector: "appearance-limitations",
                     label: fl!("fork-chrome-window-appearance"),
                     lines,
