@@ -68,9 +68,9 @@ impl SheprdWindow {
         };
         let geometry = self.menu.application_bar.bar.clone();
         let buttons = &self.menu.application_bar.buttons;
-        // Only the in-flow bar owns anchor measurements. Its overlay copy
-        // must never replace those with geometry from a different frame.
-        let measure = layer == BarLayer::Base;
+        // The in-flow bar owns measurements when visible. When hidden, the
+        // overlay is the only bar available to measure for heading changes.
+        let measure = layer == BarLayer::Base || !self.application_bar_visible();
         let accessible = measure || !self.application_bar_visible();
         if measure {
             buttons
@@ -487,13 +487,10 @@ impl SheprdWindow {
         overlay.child(
             anchored()
                 .position(point(
-                    (if self.application_bar_visible() {
-                        button.left()
-                    } else {
-                        content.left()
-                    })
-                    .min((content.right() - width - px(8.)).max(content.left() + px(8.)))
-                    .max(content.left() + px(8.)),
+                    button
+                        .left()
+                        .min((content.right() - width - px(8.)).max(content.left() + px(8.)))
+                        .max(content.left() + px(8.)),
                     top,
                 ))
                 .snap_to_window_with_margin(Edges::all(px(8.)))

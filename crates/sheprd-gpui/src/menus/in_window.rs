@@ -122,7 +122,7 @@ fn validate(menu: &mut OwnedMenu, window: &Window, cx: &mut App) {
 
 impl SheprdWindow {
     pub(crate) fn application_bar_visible(&self) -> bool {
-        super::IN_WINDOW && self.config.show_menu_bar && !self.zen_layout()
+        super::IN_WINDOW && self.menu_bar_visible && !self.zen_layout()
     }
 
     pub(crate) fn application_menu_shortcut(

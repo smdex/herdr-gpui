@@ -19,9 +19,43 @@ use crate::{
     open_additional_window, state,
 };
 use gpui::{Context, Window};
+use std::sync::atomic::Ordering;
 use std::time::Duration;
 
 impl SheprdWindow {
+    /// Persist menu visibility after the preceding config operation finishes.
+    /// A rejected click is reported instead of racing an earlier disk write.
+    pub(crate) fn toggle_persistent_menu_bar_with(
+        &mut self,
+        save: impl FnOnce(bool) -> crate::Result<()> + Send + 'static,
+        cx: &mut Context<Self>,
+    ) {
+        let saving = cx.default_global::<LayoutSaves>().menu_bar.clone();
+        if self.config_load.is_some()
+            || self.theme_save_in_flight()
+            || saving.load(Ordering::Acquire)
+        {
+            self.show_flash(Flash::warning(fl!("commands-menu-bar-save-busy")), cx);
+            return;
+        }
+        let shown = !self.menu_bar_visible;
+        if shown == self.config.show_menu_bar {
+            self.menu_bar_visible = shown;
+            cx.notify();
+        } else if let Some(guard) = crate::window::MenuBarSaveGuard::take(&saving) {
+            // The successful reload applies the new value. On a failed save,
+            // keep the previous visibility rather than displaying a lie.
+            self.save_preference(
+                move || {
+                    let _guard = guard;
+                    save(shown)
+                },
+                cx,
+            );
+        } else {
+            self.show_flash(Flash::warning(fl!("commands-menu-bar-save-busy")), cx);
+        }
+    }
     /// Switches the sidebar layout here at once, then keeps it: the choice is
     /// saved to the local overrides off the UI thread, and the config watcher
     /// brings every other window along.
@@ -631,6 +665,16 @@ impl SheprdWindow {
                 return;
             }
             Command::ToggleMenuBar => {
+                if crate::menus::IN_WINDOW {
+                    self.toggle_persistent_menu_bar_with(
+                        |shown| Config::save_preference(Preference::ShowMenuBar(shown)),
+                        cx,
+                    );
+                    window.focus(&self.focus, cx);
+                }
+                return;
+            }
+            Command::ToggleMenuBarTemporary => {
                 if crate::menus::IN_WINDOW {
                     self.menu_bar_visible = !self.menu_bar_visible;
                     window.focus(&self.focus, cx);
