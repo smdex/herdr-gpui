@@ -6,6 +6,7 @@ fn hidden_menu_opens_without_moving_content_and_restores_focus(cx: &mut TestAppC
     cx.update(|_, cx| {
         view.update(cx, |view, cx| {
             view.config.show_menu_bar = false;
+            view.menu_bar_visible = false;
             cx.notify();
         })
     });
@@ -48,6 +49,7 @@ fn hidden_menu_preserves_the_server_window_controls_setting(cx: &mut TestAppCont
         cx.update(|_, cx| {
             view.update(cx, |view, cx| {
                 view.config.show_menu_bar = false;
+                view.menu_bar_visible = false;
                 view.config.show_window_controls = enabled;
                 view.settings.shared = Some(
                     crate::herdr_settings::Settings::parse_text(&format!(
@@ -89,6 +91,7 @@ fn hidden_menu_preserves_the_server_window_controls_setting(cx: &mut TestAppCont
             view.update(cx, |view, cx| {
                 view.command(crate::controls::Command::ToggleZenMode, window, cx);
                 view.config.show_menu_bar = true;
+                view.menu_bar_visible = true;
                 cx.notify();
             })
         });

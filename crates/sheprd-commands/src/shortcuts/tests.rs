@@ -24,15 +24,16 @@ fn assert_ctrl_profile(profile: Profile) {
     let mut seen = HashMap::new();
     for info in COMMANDS {
         let shortcuts = profile(info.command);
-        if info.command == Command::ToggleMenuBar {
-            // macOS keeps its native menu; only Ctrl profiles have this toggle.
-            assert_eq!(shortcuts, ["ctrl-shift-m"]);
-        } else {
-            assert!(
+        match info.command {
+            // macOS keeps its native menu; only Ctrl profiles have these
+            // toggles, and the session-only one rides the old chord.
+            Command::ToggleMenuBar => assert_eq!(shortcuts, ["ctrl-shift-m"]),
+            Command::ToggleMenuBarTemporary => assert_eq!(shortcuts, ["ctrl-alt-m"]),
+            _ => assert!(
                 shortcuts.len() >= info.base_shortcuts().len(),
                 "{}",
                 info.name
-            );
+            ),
         }
         for shortcut in shortcuts {
             let key = parse(shortcut);

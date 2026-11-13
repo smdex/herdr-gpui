@@ -769,7 +769,9 @@ impl SheprdWindow {
                     Command::EditScrollback => {
                         self.live.supports_edit_scrollback || palette.core_view.is_some()
                     }
-                    Command::ToggleMenuBar => crate::menus::IN_WINDOW,
+                    Command::ToggleMenuBar | Command::ToggleMenuBarTemporary => {
+                        crate::menus::IN_WINDOW
+                    }
                     _ => true,
                 })
                 .map(|info| {

@@ -664,6 +664,8 @@ impl SheprdWindow {
                         })),
                 );
             }
+        } else if page == Page::StatusBar {
+            panel = self.render_status_bar_menu(panel, cx);
         } else if page == Page::Devices {
             panel = match self.menu.session_edit {
                 Some(_) => panel.child(self.render_session_edit(cx)),
