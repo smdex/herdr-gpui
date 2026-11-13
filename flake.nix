@@ -40,7 +40,9 @@
         pkgs:
         let
           inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux;
-          toolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
+          # The overlay consumer's nixpkgs need not carry rust-overlay, so
+          # extend locally like forAllSystems does.
+          toolchain = (pkgs.extend rust-overlay.overlays.default).rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
           rustPlatform = pkgs.makeRustPlatform {
             cargo = toolchain;
             rustc = toolchain;
@@ -70,10 +72,24 @@
             else
               null;
           nearby = pkgs.callPackage ./macos/sheprd-nearby/package.nix { };
+          companionInstall = ''
+            # Real copies keep standalone outputs independent of the GUI bundle.
+            # install follows the macOS bundle symlinks; ACP stays beside remote control.
+            install -Dm755 $out/bin/sheprd-acp $acp/bin/sheprd-acp
+            install -Dm755 $out/bin/sheprd-remote-control \
+              $remoteControl/bin/sheprd-remote-control
+            install -Dm755 $out/bin/sheprd-automate $automate/bin/sheprd-automate
+            ln -s $acp/bin/sheprd-acp $remoteControl/bin/sheprd-acp
+            ln -s sheprd-acp $acp/bin/herdr-acp
+            ln -s sheprd-acp $remoteControl/bin/herdr-acp
+            ln -s sheprd-remote-control $remoteControl/bin/herdr-remote-control
+            ln -s sheprd-automate $automate/bin/herdr-automate
+          '';
+
         in
         rustPlatform.buildRustPackage {
           pname = "sheprd";
-          version = "0-unstable-${lib.substring 0 8 (self.lastModifiedDate or "19700101")}";
+          version = "20261113.1-smdex.1";
           src = lib.fileset.toSource {
             root = ./.;
             fileset = lib.fileset.unions [
@@ -201,23 +217,15 @@
                   ln -s "$app/Contents/MacOS/herdr-core" "$out/bin/herdr-core"
                 ''}
               ''
+              + companionInstall
             else
               ''
                 install -Dm644 scripts/release/org.sheprd.Sheprd.desktop \
                   $out/share/applications/org.sheprd.Sheprd.desktop
-                # Real copies keep current_exe beside the bundle's companions.
-                install -Dm755 $out/bin/sheprd-acp $acp/bin/sheprd-acp
-                install -Dm755 $out/bin/sheprd-remote-control $remoteControl/bin/sheprd-remote-control
-                install -Dm755 $out/bin/sheprd-automate $automate/bin/sheprd-automate
-                # The remote daemon discovers ACP beside its own real executable.
-                ln -s $acp/bin/sheprd-acp $remoteControl/bin/sheprd-acp
-                ln -s sheprd-acp $acp/bin/herdr-acp
-                ln -s sheprd-acp $remoteControl/bin/herdr-acp
-                ln -s sheprd-remote-control $remoteControl/bin/herdr-remote-control
-                ln -s sheprd-automate $automate/bin/herdr-automate
                 install -Dm644 assets/icons/sheprd-linux.svg \
                   $out/share/icons/hicolor/scalable/apps/sheprd.svg
-              '';
+              ''
+              + companionInstall;
 
           postFixup = lib.optionalString isLinux ''
             patchelf --add-rpath ${lib.makeLibraryPath runtimeLibraries} $out/bin/sheprd
