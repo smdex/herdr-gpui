@@ -267,6 +267,24 @@ and the native Bluetooth helper; launch it with `open result/Applications/Sheprd
 Linux users supply their own Herdr or herdr-core daemon. Nix builds never update
 themselves; upgrade through Nix.
 
+#### This fork's Nix packages
+
+Pin the reviewed fork snapshot rather than its automatically rebased `main`:
+
+```nix
+inputs.sheprd.url = "github:smdex/herdr-gpui/v20261113.1-smdex.1";
+```
+
+`packages.${system}.sheprd` (also `default` and `herdr-gpui`) includes the GUI
+and its companions. `sheprd-acp`, `sheprd-remote-control`, and `sheprd-automate`
+select standalone companion outputs on Linux and Apple Silicon macOS, with
+legacy `herdr-*` package and executable aliases. Standalone outputs do not
+retain the GUI runtime output; remote control retains ACP for chat discovery.
+They share the bundle's Rust build, so building a companion still compiles the
+GUI. `overlays.default` composes with the consumer's Nixpkgs without requiring
+a separate rust-overlay import. See the [fork revision](docs/fork-revision-20261113.md)
+for retained features, obsolete assumptions, and verification limits.
+
 ### Windows installers
 
 In PowerShell, on x86_64 or ARM64:

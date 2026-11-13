@@ -261,11 +261,11 @@ pub struct Config {
     pub(crate) px0: crate::px0::Config,
     /// Remote control from a phone, through the `herdr-remote-control` daemon.
     pub remote: RemoteConfig,
-    /// Request Wayland client decorations for newly opened main windows only.
-    pub request_client_side_decorations: bool,
     /// Whether a linked worktree whose pull request is merged is removed, and
     /// its workspace closed, without asking. The focused workspace still asks.
     pub remove_merged_worktrees: bool,
+    /// Request Wayland client decorations for newly opened main windows only.
+    pub request_client_side_decorations: bool,
     pub show_agents: bool,
     /// The "Agents" title row above the agents list, which also holds the sort
     /// toggle. The sort then follows Herdr's `ui.agent_panel_sort` unless it
@@ -901,9 +901,9 @@ impl Config {
         config.confirm_close_tab = settings.confirm_close_tab.unwrap_or(true);
         config.confirm_close_workspace = settings.confirm_close_workspace.unwrap_or(true);
         config.focus_follows_mouse = settings.focus_follows_mouse.unwrap_or(true);
+        config.remove_merged_worktrees = settings.remove_merged_worktrees.unwrap_or(false);
         config.request_client_side_decorations =
             settings.request_client_side_decorations.unwrap_or(false);
-        config.remove_merged_worktrees = settings.remove_merged_worktrees.unwrap_or(false);
         config.show_agents = settings.show_agents.unwrap_or(true);
         config.show_agents_header = settings.show_agents_header.unwrap_or(true);
         config.show_device_icons = settings.show_device_icons.unwrap_or(true);
