@@ -628,10 +628,10 @@ asks for client-side decorations when a main window is next opened. The default
 is `false`; `config get request_client_side_decorations` reads the saved/effective
 preference, **not** negotiated support, and `config unset request_client_side_decorations`
 restores the default. Reopen the window to apply it. Secondary windows and other
-backends are unaffected. The compositor may decline; the pinned GPUI platform backport reports processed
-decoration fallback and advertised blur support, and requests ext-background-effect-v1
-blur with legacy KDE fallback. These reports do not confirm visible blur; native
-compositor QA remains outstanding. See the
+backends are unaffected. The compositor may decline. The current upstream GPUI
+API exposes neither processed decoration negotiation nor blur-support probes,
+so Sheprd does not infer refusal or unsupported blur from the saved preference
+or observed decorations. Native compositor QA remains outstanding. See the
 [GUI README](../crates/sheprd-gpui/README.md#wayland-decoration-requests).
 
 On Linux, `show_window_controls` remains effective when the menu is hidden,
@@ -642,8 +642,8 @@ buttons. Client-decorated windows retain their controls regardless.
 ### Window appearance limitations
 
 `status` and `window list` include each window's current `appearance_limitations`
-(array of display strings in JSON, `appearance:` lines in text). These remain
-available when the in-app notice is dismissed. Only processed client-decoration
-refusal and explicitly unsupported, actually requested blur are reported;
-pending/unreported status is silent. An empty list does not confirm visual blur.
-Older payloads without this field decode as an empty list.
+(array of display strings in JSON, `appearance:` lines in text). The field is
+retained for protocol compatibility, but is currently empty because upstream
+GPUI cannot establish these limitations. An empty list confirms neither client
+decoration support nor visual blur. Older payloads without this field decode
+as an empty list.

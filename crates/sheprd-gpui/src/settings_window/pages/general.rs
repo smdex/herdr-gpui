@@ -110,6 +110,25 @@ impl SettingsWindow {
                         )),
                 )
             })
+            // i18n: data
+            .when(cx.compositor_name() == "Wayland", |page| {
+                page.child(
+                    ui::row(
+                        theme,
+                        "general-client-decorations",
+                        fl!("fork-chrome-client-decorations"),
+                    )
+                    .description(fl!("fork-chrome-client-decorations-description"))
+                    .switch(self.preference_toggle(
+                        "general-client-decorations-toggle",
+                        self.config.request_client_side_decorations,
+                        Preference::RequestClientSideDecorations(
+                            !self.config.request_client_side_decorations,
+                        ),
+                        cx,
+                    )),
+                )
+            })
             .when(cfg!(target_os = "linux"), |page| {
                 page.child(
                     ui::row(

@@ -144,7 +144,10 @@ apply. Secondary constructors are untouched. Rendering still follows observed
 The header already uses backdrop `Fill::tint`, the menu uses `Fill::panel`, and
 the zen band receives `Fill::ground`; no additional opacity layer was needed.
 
-### Local platform-status consumption checkpoint
+### Historical local platform-status consumption checkpoint
+
+This checkpoint describes the former GPUI backport, not the current dependency
+contract. See the current integration status below.
 
 Herdr now consumes the reviewed local GPUI decoration-negotiation and blur-support
 queries. A separate dismissible appearance card reports only the initial Client
@@ -167,13 +170,17 @@ checks are not final reproducible or compositor validation.
 
 ### Final integration status
 
-The local-patch verification above is historical. Both GPUI packages now use the
-published immutable backport revision and verified Nix hash documented in the
-[root README](../README.md#from-source). Full application CI, Linux lint, the
-release build/CLI checks, and the final Nix snapshot build passed before the final
-text-only documentation and Settings help corrections. Windows lint was attempted
-but blocked by missing target core/std; native compositor and Windows/macOS QA
-remain outstanding. This is not full section-3 acceptance.
+The local-patch verification above is historical. The fork now follows
+upstream's registry GPUI dependency rather than maintaining the platform
+backport. That API supports requesting decorations, but not processed
+negotiation or blur-support queries. The request remains default-off and frames
+follow observed decorations. `appearance_limitations` stays on the control wire
+for compatibility and is currently empty, not evidence that effects work.
+Do not reintroduce the backport solely to preserve obsolete diagnostic claims.
+See the [root README](../README.md#from-source) and the dated
+[fork revision](fork-revision-20261113.md) for the current verification record.
+Native compositor and Windows/macOS QA remain outstanding. This is not full
+section-3 acceptance.
 
 ## Delivery and verification
 

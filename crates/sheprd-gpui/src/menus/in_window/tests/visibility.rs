@@ -131,6 +131,7 @@ fn hidden_menu_header_keeps_controls_accessible_with_long_git_counts_and_split_g
     cx.update(|window, cx| {
         view.update(cx, |view, cx| {
             view.config.show_menu_bar = false;
+            view.menu_bar_visible = false;
             view.config.show_window_controls = true;
             view.live.snapshot = Some(std::sync::Arc::new(
                 serde_json::from_str(include_str!(
