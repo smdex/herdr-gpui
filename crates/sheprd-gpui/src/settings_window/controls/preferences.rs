@@ -1,7 +1,7 @@
 //! Typed preference saves and switches, and the Integrations page.
 // i18n: migrated
 use super::*;
-use crate::config::preferences::Preference;
+use crate::{config::preferences::Preference, i18n::fl};
 
 #[cfg(test)]
 #[derive(Clone)]
@@ -61,7 +61,37 @@ impl SettingsWindow {
             self.save_with(move || (io.write)(edit), move || (io.load)(), false, cx);
             return;
         }
-        self.save_native(move || Config::save_preference(edit), cx);
+        // The window's menu-bar toggle and this switch share one write guard:
+        // whichever started first finishes, and the other reports it is busy.
+        let menu_bar_edit = matches!(edit, Preference::ShowMenuBar(_));
+        let guard_flag = menu_bar_edit.then(|| {
+            cx.default_global::<crate::window::LayoutSaves>()
+                .menu_bar
+                .clone()
+        });
+        if menu_bar_edit
+            && guard_flag
+                .as_ref()
+                .is_some_and(|flag| flag.load(std::sync::atomic::Ordering::Acquire))
+        {
+            self.error = Some(fl!("commands-menu-bar-save-busy"));
+            cx.notify();
+            return;
+        }
+        self.save_native(
+            move || {
+                // A window toggle claimed the write guard between the check
+                // above and this write: refuse rather than race it to the file.
+                let _guard = guard_flag
+                    .as_ref()
+                    .and_then(|flag| crate::window::MenuBarSaveGuard::take(flag));
+                if menu_bar_edit && _guard.is_none() {
+                    return Err(crate::Error::ConnectionBusy);
+                }
+                Config::save_preference(edit)
+            },
+            cx,
+        );
     }
 
     pub(in crate::settings_window) fn render_integration_controls(

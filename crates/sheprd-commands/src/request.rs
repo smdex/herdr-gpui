@@ -152,6 +152,7 @@ pub fn request(command: Command, snapshot: &ClientShellSnapshot) -> Option<(Meth
         | Command::ToggleSidebar
         | Command::ToggleStatusBar
         | Command::ToggleMenuBar
+        | Command::ToggleMenuBarTemporary
         | Command::ToggleModPanel
         | Command::FocusNextRegion
         | Command::FocusPreviousRegion

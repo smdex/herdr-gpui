@@ -33,7 +33,7 @@ mod images;
 pub(crate) use images::external_paths;
 mod input;
 mod layout_save;
-pub(crate) use layout_save::LayoutSaves;
+pub(crate) use layout_save::{LayoutSaves, MenuBarSaveGuard};
 mod lifecycle;
 pub(crate) mod main_window;
 pub(crate) use lifecycle::reasserts;

@@ -9,7 +9,7 @@ fn the_toggle_flips_only_where_the_window_draws_the_bar(cx: &mut TestAppContext)
     let (view, cx) = window(cx);
     cx.update(|window, cx| {
         view.update(cx, |view, cx| {
-            view.command(Command::ToggleMenuBar, window, cx)
+            view.command(Command::ToggleMenuBarTemporary, window, cx)
         })
     });
     let visible = view.read_with(cx, |view, _| view.menu_bar_visible);

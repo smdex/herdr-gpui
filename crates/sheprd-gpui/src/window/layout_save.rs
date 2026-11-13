@@ -3,7 +3,7 @@
 use crate::config::{ChatLayoutMode, Config, LayoutMode, TabLayoutMode};
 use std::sync::{
     Arc, Mutex, PoisonError,
-    atomic::{AtomicU64, Ordering},
+    atomic::{AtomicBool, AtomicU64, Ordering},
 };
 
 /// The newest choice not yet written, and the lock its writer holds. Each
@@ -106,8 +106,29 @@ impl<T: Copy> LatestSave<T> {
 #[derive(Default)]
 pub(crate) struct LayoutSaves {
     pub(super) chat: LatestSave<ChatLayoutMode>,
+    pub(crate) menu_bar: Arc<AtomicBool>,
     pub(super) sidebar: LatestSave<LayoutMode>,
     pub(super) tabs: LatestSave<TabLayoutMode>,
+}
+
+/// Holds `LayoutSaves::menu_bar` for one in-flight `show_menu_bar` write,
+/// whichever surface started it: a window toggle or the Settings switch.
+/// Dropping it (when the save's work finishes) releases the flag.
+pub(crate) struct MenuBarSaveGuard(Arc<AtomicBool>);
+
+impl MenuBarSaveGuard {
+    /// Claims the flag, or returns `None` when a write is already running.
+    pub(crate) fn take(flag: &Arc<AtomicBool>) -> Option<Self> {
+        flag.compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .ok()
+            .map(|_| Self(Arc::clone(flag)))
+    }
+}
+
+impl Drop for MenuBarSaveGuard {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::Release);
+    }
 }
 
 impl gpui::Global for LayoutSaves {}
